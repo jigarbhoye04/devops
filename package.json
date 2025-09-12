@@ -1,0 +1,13 @@
+{
+  "name": "cicd-devops",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "run" : "node index.js",
+    "test" : "node test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
