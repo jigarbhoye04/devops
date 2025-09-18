@@ -270,7 +270,7 @@ export default function Home() {
                   <div>
                     <div style={{ fontWeight: 600 }}>Take a break</div>
                     <div className="subtle" style={{ fontSize: '0.9rem' }}>
-                      Go outside, it's nice.
+                      Go outside, it&apos;s nice.
                     </div>
                   </div>
                 </div>
