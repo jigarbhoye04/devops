@@ -2,3 +2,4 @@ Docs
 script.sh
 .env
 
+node_modules/
