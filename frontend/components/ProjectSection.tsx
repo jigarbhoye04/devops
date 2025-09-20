@@ -1,46 +1,46 @@
-import { ArrowUpRight, Lock, Eye, Zap, Shield, MoveRight } from "lucide-react";
+import { ArrowUpRight, Lock, Eye, Zap, Shield, MoveRight } from 'lucide-react';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 
 const projects = [
   {
-    heading: "Project Enigma",
-    subheading: "Classification: Ultra",
+    heading: 'Project Enigma',
+    subheading: 'Classification: Ultra',
     description:
       "A breakthrough innovation that will fundamentally change how you interact with technology. Details remain classified until the official unveiling. Only those on the inside will know what's coming.",
     image:
-      "https://cdn.cosmos.so/d33ccd12-48ec-47f7-bd5e-bd497a5f5fb1?format=jpeg",
-    url: "#",
+      'https://cdn.cosmos.so/d33ccd12-48ec-47f7-bd5e-bd497a5f5fb1?format=jpeg',
+    url: '#',
     icon: Lock,
   },
   {
-    heading: "The Nexus Protocol",
-    subheading: "Reality Redefined",
+    heading: 'The Nexus Protocol',
+    subheading: 'Reality Redefined',
     description:
-      "Something extraordinary is being forged in our laboratories. The boundaries between possible and impossible are about to blur. The chosen few will witness history in the making.",
+      'Something extraordinary is being forged in our laboratories. The boundaries between possible and impossible are about to blur. The chosen few will witness history in the making.',
     image:
-      "https://cdn.cosmos.so/d828d816-1d9b-4816-9353-7a58fcfde3a9?format=jpeg",
-    url: "#",
+      'https://cdn.cosmos.so/d828d816-1d9b-4816-9353-7a58fcfde3a9?format=jpeg',
+    url: '#',
     icon: Eye,
   },
   {
-    heading: "Quantum Disruption",
-    subheading: "Beyond Imagination",
+    heading: 'Quantum Disruption',
+    subheading: 'Beyond Imagination',
     description:
       "Revolutionary technology that defies conventional thinking. Our engineers have unlocked something that will make today's innovations seem primitive. The future is closer than you think.",
     image:
-      "https://cdn.cosmos.so/70637007-22b1-4ad4-8076-e085f761c943?format=jpeg",
-    url: "#",
+      'https://cdn.cosmos.so/70637007-22b1-4ad4-8076-e085f761c943?format=jpeg',
+    url: '#',
     icon: Zap,
   },
   {
-    heading: "Operation Catalyst",
-    subheading: "The Final Frontier",
+    heading: 'Operation Catalyst',
+    subheading: 'The Final Frontier',
     description:
-      "The culmination of years of secretive research and development. A product so groundbreaking, it required the brightest minds working in absolute secrecy. The world will never be the same.",
+      'The culmination of years of secretive research and development. A product so groundbreaking, it required the brightest minds working in absolute secrecy. The world will never be the same.',
     image:
-      "https://cdn.cosmos.so/ee6edeb0-9a64-4452-9a47-5cfa02039ab7?format=jpeg",
-    url: "#",
+      'https://cdn.cosmos.so/ee6edeb0-9a64-4452-9a47-5cfa02039ab7?format=jpeg',
+    url: '#',
     icon: Shield,
   },
 ];
@@ -53,11 +53,13 @@ const ProjectSection = () => {
           <p className="text-muted-foreground mb-1 uppercase md:text-lg">
             Something Revolutionary is Coming
           </p>
-          <h1 className="text-3xl font-bold uppercase md:text-7xl">Classified</h1>
+          <h1 className="text-3xl font-bold uppercase md:text-7xl">
+            Classified
+          </h1>
           <p className="text-muted-foreground mt-7 max-w-2xl">
-            Behind closed doors, our team of visionaries is crafting something 
-            that will reshape the future. These glimpses into our classified 
-            projects are all we can reveal—for now. Join the waitlist to be 
+            Behind closed doors, our team of visionaries is crafting something
+            that will reshape the future. These glimpses into our classified
+            projects are all we can reveal—for now. Join the waitlist to be
             among the first to witness the impossible become reality.
           </p>
           <Button className="group mt-7 border border-white/20 bg-transparent text-white hover:bg-white/10 rounded-none px">
@@ -79,7 +81,7 @@ const ProjectSection = () => {
                 <div className="flex gap-1 text-2xl font-bold items-center">
                   <project.icon className="size-6" />
                   <span>/</span>
-                  <span>{String(idx + 1).padStart(2, "0")}</span>
+                  <span>{String(idx + 1).padStart(2, '0')}</span>
                 </div>
                 <div className="flex flex-1 flex-col gap-2.5">
                   <h3 className="text-2xl font-bold lg:text-4xl">

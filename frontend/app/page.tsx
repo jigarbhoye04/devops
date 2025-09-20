@@ -1,11 +1,11 @@
-import { CaseStudySection } from "@/components/CaseSetudySection";
-import { CtaSection } from "@/components/CTASection";
-import FeatureSection from "@/components/FeatureSection";
-import FeatureSectionTwo from "@/components/FeatureSectionTwo";
-import { Footer } from "@/components/Footer";
-import HeroSection from "@/components/HeroSection";
-import { ProjectSection } from "@/components/ProjectSection";
-import { SocialSection } from "@/components/SocialSection";
+import { CaseStudySection } from '@/components/CaseSetudySection';
+import { CtaSection } from '@/components/CTASection';
+import FeatureSection from '@/components/FeatureSection';
+import FeatureSectionTwo from '@/components/FeatureSectionTwo';
+import { Footer } from '@/components/Footer';
+import HeroSection from '@/components/HeroSection';
+import { ProjectSection } from '@/components/ProjectSection';
+import { SocialSection } from '@/components/SocialSection';
 
 export default function Home() {
   return (

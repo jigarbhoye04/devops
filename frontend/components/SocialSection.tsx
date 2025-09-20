@@ -1,5 +1,5 @@
-import { ArrowUpRight } from "lucide-react";
-import { FaDiscord, FaGithub, FaLinkedin, FaXTwitter } from "react-icons/fa6";
+import { ArrowUpRight } from 'lucide-react';
+import { FaDiscord, FaGithub, FaLinkedin, FaXTwitter } from 'react-icons/fa6';
 
 const SocialSection = () => {
   return (

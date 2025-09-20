@@ -1,5 +1,5 @@
-import { Eye, MoveRight } from "lucide-react";
-import React from "react";
+import { Eye, MoveRight } from 'lucide-react';
+import React from 'react';
 
 interface CasestudyItem {
   logo: string;
@@ -17,34 +17,34 @@ interface Casestudies3Props {
 }
 
 const defaultFeaturedCasestudy: CasestudyItem = {
-  logo: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/block-1.svg",
-  company: "Project X",
-  tags: "CLASSIFIED / REVOLUTIONARY TECHNOLOGY",
-  title: "Something extraordinary is coming.",
-  subtitle: "The future begins with a single step.",
+  logo: 'https://deifkwefumgah.cloudfront.net/shadcnblocks/block/block-1.svg',
+  company: 'Project X',
+  tags: 'CLASSIFIED / REVOLUTIONARY TECHNOLOGY',
+  title: 'Something extraordinary is coming.',
+  subtitle: 'The future begins with a single step.',
   image:
-    "https://cdn.cosmos.so/b78e0b56-841f-4af4-8d4c-97a852aa6dae?format=jpeg",
-  link: "/",
+    'https://cdn.cosmos.so/b78e0b56-841f-4af4-8d4c-97a852aa6dae?format=jpeg',
+  link: '/',
 };
 
 const defaultCasestudies: CasestudyItem[] = [
   {
-    logo: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/block-2.svg",
-    company: "Alpha",
-    tags: "BREAKTHROUGH / INNOVATION FRONTIER",
-    title: "Beyond what you thought possible.",
-    subtitle: "Prepare for a paradigm shift in reality.",
-    image: "",
-    link: "https://shadcnblocks.com",
+    logo: 'https://deifkwefumgah.cloudfront.net/shadcnblocks/block/block-2.svg',
+    company: 'Alpha',
+    tags: 'BREAKTHROUGH / INNOVATION FRONTIER',
+    title: 'Beyond what you thought possible.',
+    subtitle: 'Prepare for a paradigm shift in reality.',
+    image: '',
+    link: 'https://shadcnblocks.com',
   },
   {
-    logo: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/block-3.svg",
-    company: "Nexus",
-    tags: "CONFIDENTIAL / FUTURE TECHNOLOGY",
-    title: "The next chapter of human potential.",
-    subtitle: "Where imagination meets impossibility.",
-    image: "",
-    link: "https://shadcnblocks.com",
+    logo: 'https://deifkwefumgah.cloudfront.net/shadcnblocks/block/block-3.svg',
+    company: 'Nexus',
+    tags: 'CONFIDENTIAL / FUTURE TECHNOLOGY',
+    title: 'The next chapter of human potential.',
+    subtitle: 'Where imagination meets impossibility.',
+    image: '',
+    link: 'https://shadcnblocks.com',
   },
 ];
 
@@ -57,7 +57,7 @@ const CaseStudySection = ({
       <div className="w-full">
         <div className="border-border border border-r-0 border-l-0">
           <a
-            href={featuredCasestudy.link || "#"}
+            href={featuredCasestudy.link || '#'}
             className=" group grid gap-4 overflow-hidden px-6 transition-colors duration-500 ease-out lg:grid-cols-2 xl:px-28"
           >
             <div className="flex flex-col justify-between gap-4 pt-8 md:pt-16 lg:pb-16">
@@ -72,7 +72,7 @@ const CaseStudySection = ({
                 <h2 className="mb-5 mt-4 text-balance text-white/80 group-hover:text-white text-2xl font-semibold sm:text-3xl sm:leading-10">
                   {featuredCasestudy.title}
                   <span className="text-primary/50 font-medium transition-colors duration-500 ease-out">
-                    {" "}
+                    {' '}
                     {featuredCasestudy.subtitle}
                   </span>
                 </h2>
@@ -100,11 +100,11 @@ const CaseStudySection = ({
               {casestudies.map((item, idx) => (
                 <a
                   key={item.company}
-                  href={item.link || "#"}
+                  href={item.link || '#'}
                   className={`border-border text-white/80 group-hover:text-white backdrop-blur-3xl group flex flex-col justify-between gap-12 px-6 py-8 transition-colors duration-500 ease-out md:py-16 lg:pb-16 xl:gap-16 ${
                     idx === 0
-                      ? "xl:border-l xl:pl-8"
-                      : "border-t lg:border-l lg:border-t-0 xl:border-r xl:pl-8"
+                      ? 'xl:border-l xl:pl-8'
+                      : 'border-t lg:border-l lg:border-t-0 xl:border-r xl:pl-8'
                   }`}
                 >
                   <div className="flex items-center gap-2 text-2xl font-medium">
@@ -118,7 +118,7 @@ const CaseStudySection = ({
                     <h2 className="mb-5 mt-4 text-balance text-2xl font-semibold sm:text-3xl sm:leading-10">
                       {item.title}
                       <span className="text-primary/50  font-medium transition-colors duration-500 ease-out">
-                        {" "}
+                        {' '}
                         {item.subtitle}
                       </span>
                     </h2>

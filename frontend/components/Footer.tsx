@@ -1,6 +1,6 @@
-import { Framer } from "lucide-react";
-import React from "react";
-import { FaFacebook, FaInstagram, FaLinkedin, FaTwitter } from "react-icons/fa";
+import { Framer } from 'lucide-react';
+import React from 'react';
+import { FaFacebook, FaInstagram, FaLinkedin, FaTwitter } from 'react-icons/fa';
 
 interface Footer7Props {
   logo?: {
@@ -28,57 +28,57 @@ interface Footer7Props {
 
 const defaultSections = [
   {
-    title: "Connect",
+    title: 'Connect',
     links: [
-      { name: "Waitlist", href: "#" },
-      { name: "Updates", href: "#" },
-      { name: "Contact", href: "#" },
-      { name: "Support", href: "#" },
+      { name: 'Waitlist', href: '#' },
+      { name: 'Updates', href: '#' },
+      { name: 'Contact', href: '#' },
+      { name: 'Support', href: '#' },
     ],
   },
   {
-    title: "Company",
+    title: 'Company',
     links: [
-      { name: "About", href: "#" },
-      { name: "Team", href: "#" },
-      { name: "Blog", href: "#" },
-      { name: "Vision", href: "#" },
+      { name: 'About', href: '#' },
+      { name: 'Team', href: '#' },
+      { name: 'Blog', href: '#' },
+      { name: 'Vision', href: '#' },
     ],
   },
   {
-    title: "Mystery",
+    title: 'Mystery',
     links: [
-      { name: "Clues", href: "#" },
-      { name: "Timeline", href: "#" },
-      { name: "Archives", href: "#" },
-      { name: "Secrets", href: "#" },
+      { name: 'Clues', href: '#' },
+      { name: 'Timeline', href: '#' },
+      { name: 'Archives', href: '#' },
+      { name: 'Secrets', href: '#' },
     ],
   },
 ];
 
 const defaultSocialLinks = [
-  { icon: <FaInstagram className="size-5" />, href: "#", label: "Instagram" },
-  { icon: <FaFacebook className="size-5" />, href: "#", label: "Facebook" },
-  { icon: <FaTwitter className="size-5" />, href: "#", label: "Twitter" },
-  { icon: <FaLinkedin className="size-5" />, href: "#", label: "LinkedIn" },
+  { icon: <FaInstagram className="size-5" />, href: '#', label: 'Instagram' },
+  { icon: <FaFacebook className="size-5" />, href: '#', label: 'Facebook' },
+  { icon: <FaTwitter className="size-5" />, href: '#', label: 'Twitter' },
+  { icon: <FaLinkedin className="size-5" />, href: '#', label: 'LinkedIn' },
 ];
 
 const defaultLegalLinks = [
-  { name: "Terms and Conditions", href: "#" },
-  { name: "Privacy Policy", href: "#" },
+  { name: 'Terms and Conditions', href: '#' },
+  { name: 'Privacy Policy', href: '#' },
 ];
 
 const Footer = ({
   logo = {
-    url: "/",
-    src: "",
-    alt: "logo",
-    title: "",
+    url: '/',
+    src: '',
+    alt: 'logo',
+    title: '',
   },
   sections = defaultSections,
-  description = "Something extraordinary is coming. Join the revolution.",
+  description = 'Something extraordinary is coming. Join the revolution.',
   socialLinks = defaultSocialLinks,
-  copyright = "© 2025 Project X All rights reserved.",
+  copyright = '© 2025 Project X All rights reserved.',
   legalLinks = defaultLegalLinks,
 }: Footer7Props) => {
   return (

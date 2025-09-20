@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { ArrowRight, Framer, MenuIcon } from "lucide-react";
-import Link from "next/link";
+import { ArrowRight, Framer, MenuIcon } from 'lucide-react';
+import Link from 'next/link';
 
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/accordion';
+import { Button } from '@/components/ui/button';
 // import {
 //   NavigationMenu,
 //   NavigationMenuContent,
@@ -25,47 +25,47 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet";
+} from '@/components/ui/sheet';
 
 const Navbar5 = () => {
   const features = [
     {
-      title: "Encrypted",
-      description: "Secured beyond measure",
-      href: "#",
+      title: 'Encrypted',
+      description: 'Secured beyond measure',
+      href: '#',
     },
     {
-      title: "Quantum",
-      description: "Advanced technology core",
-      href: "#",
+      title: 'Quantum',
+      description: 'Advanced technology core',
+      href: '#',
     },
     {
-      title: "Neural",
-      description: "Intelligence redefined",
-      href: "#",
+      title: 'Neural',
+      description: 'Intelligence redefined',
+      href: '#',
     },
     {
-      title: "Adaptive",
-      description: "Evolves with purpose",
-      href: "#",
+      title: 'Adaptive',
+      description: 'Evolves with purpose',
+      href: '#',
     },
     {
-      title: "Infinite",
-      description: "Limitless potential",
-      href: "#",
+      title: 'Infinite',
+      description: 'Limitless potential',
+      href: '#',
     },
     {
-      title: "Unknown",
-      description: "Beyond comprehension",
-      href: "#",
+      title: 'Unknown',
+      description: 'Beyond comprehension',
+      href: '#',
     },
   ];
 
   const navLinks = [
-    { name: "Vision", href: "#" },
-    { name: "Creators", href: "#" },
-    { name: "Intel", href: "#" },
-    { name: "Origins", href: "#" },
+    { name: 'Vision', href: '#' },
+    { name: 'Creators', href: '#' },
+    { name: 'Intel', href: '#' },
+    { name: 'Origins', href: '#' },
   ];
 
   return (

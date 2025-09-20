@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 type Props = object;
 
@@ -10,8 +10,8 @@ function HeroSection({}: Props) {
           Something revolutionary is coming. The future starts here.
         </h1>
         <p className="mt-8 max-w-lg ">
-          We&apos;re building what&apos;s next. Be among the first to witness the
-          transformation.
+          We&apos;re building what&apos;s next. Be among the first to witness
+          the transformation.
         </p>
       </div>
       <div className="lg:w-1/2 max-md:backdrop-blur-sm  flex justify-center">

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
 
 type ReporterProps = {
   /*  ⎯⎯ props are only provided on the global-error page ⎯⎯ */
@@ -10,64 +10,64 @@ type ReporterProps = {
 
 export default function ErrorReporter({ error, reset }: ReporterProps) {
   /* ─ instrumentation shared by every route ─ */
-  const lastOverlayMsg = useRef("");
+  const lastOverlayMsg = useRef('');
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const inIframe = window.parent !== window;
     if (!inIframe) return;
 
-    const send = (payload: unknown) => window.parent.postMessage(payload, "*");
+    const send = (payload: unknown) => window.parent.postMessage(payload, '*');
 
     const onError = (e: ErrorEvent) =>
       send({
-        type: "ERROR_CAPTURED",
+        type: 'ERROR_CAPTURED',
         error: {
           message: e.message,
           stack: e.error?.stack,
           filename: e.filename,
           lineno: e.lineno,
           colno: e.colno,
-          source: "window.onerror",
+          source: 'window.onerror',
         },
         timestamp: Date.now(),
       });
 
     const onReject = (e: PromiseRejectionEvent) =>
       send({
-        type: "ERROR_CAPTURED",
+        type: 'ERROR_CAPTURED',
         error: {
           message: e.reason?.message ?? String(e.reason),
           stack: e.reason?.stack,
-          source: "unhandledrejection",
+          source: 'unhandledrejection',
         },
         timestamp: Date.now(),
       });
 
     const pollOverlay = () => {
-      const overlay = document.querySelector("[data-nextjs-dialog-overlay]");
+      const overlay = document.querySelector('[data-nextjs-dialog-overlay]');
       const node =
         overlay?.querySelector(
-          "h1, h2, .error-message, [data-nextjs-dialog-body]"
+          'h1, h2, .error-message, [data-nextjs-dialog-body]'
         ) ?? null;
-      const txt = node?.textContent ?? node?.innerHTML ?? "";
+      const txt = node?.textContent ?? node?.innerHTML ?? '';
       if (txt && txt !== lastOverlayMsg.current) {
         lastOverlayMsg.current = txt;
         send({
-          type: "ERROR_CAPTURED",
-          error: { message: txt, source: "nextjs-dev-overlay" },
+          type: 'ERROR_CAPTURED',
+          error: { message: txt, source: 'nextjs-dev-overlay' },
           timestamp: Date.now(),
         });
       }
     };
 
-    window.addEventListener("error", onError);
-    window.addEventListener("unhandledrejection", onReject);
+    window.addEventListener('error', onError);
+    window.addEventListener('unhandledrejection', onReject);
     pollRef.current = setInterval(pollOverlay, 1000);
 
     return () => {
-      window.removeEventListener("error", onError);
-      window.removeEventListener("unhandledrejection", onReject);
+      window.removeEventListener('error', onError);
+      window.removeEventListener('unhandledrejection', onReject);
       pollRef.current && clearInterval(pollRef.current);
     };
   }, []);
@@ -77,7 +77,7 @@ export default function ErrorReporter({ error, reset }: ReporterProps) {
     if (!error) return;
     window.parent.postMessage(
       {
-        type: "global-error-reset",
+        type: 'global-error-reset',
         error: {
           message: error.message,
           stack: error.stack,
@@ -87,7 +87,7 @@ export default function ErrorReporter({ error, reset }: ReporterProps) {
         timestamp: Date.now(),
         userAgent: navigator.userAgent,
       },
-      "*"
+      '*'
     );
   }, [error]);
 
@@ -108,7 +108,7 @@ export default function ErrorReporter({ error, reset }: ReporterProps) {
             </p>
           </div>
           <div className="space-y-2">
-            {process.env.NODE_ENV === "development" && (
+            {process.env.NODE_ENV === 'development' && (
               <details className="mt-4 text-left">
                 <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
                   Error details
@@ -134,4 +134,3 @@ export default function ErrorReporter({ error, reset }: ReporterProps) {
     </html>
   );
 }
-

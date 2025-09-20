@@ -1,8 +1,8 @@
-import { ArrowRight, CheckCircle, Circle, Mail, Zap, Eye } from "lucide-react";
+import { ArrowRight, CheckCircle, Circle, Mail, Zap, Eye } from 'lucide-react';
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 const CtaSection = () => {
   return (

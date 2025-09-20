@@ -1,5 +1,5 @@
-import { Circle } from "lucide-react";
-import React from "react";
+import { Circle } from 'lucide-react';
+import React from 'react';
 
 type Props = object;
 
@@ -12,7 +12,7 @@ function FeatureSection({}: Props) {
           alt="Hero Image"
           className="rounded-lg brightness-80 hover:scale-105 duration-200 hover:animate-pulse"
         />
-      </div>{" "}
+      </div>{' '}
       <div className="lg:w-1/2 lg:border-l lg:pl-16 px-8  flex flex-col justify-center h-full">
         <div className="flex mb-8 items-center gap-2">
           <h3 className="font-sans text-base capitalize">
