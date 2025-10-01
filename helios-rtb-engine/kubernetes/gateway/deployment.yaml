@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-deployment
+  namespace: helios
+  labels:
+    app: helios
+    component: gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helios
+      component: gateway
+  template:
+    metadata:
+      labels:
+        app: helios
+        component: gateway
+    spec:
+      containers:
+        - name: traefik
+          image: traefik:v3.0
+          ports:
+            - name: web
+              containerPort: 8000
+            - name: websecure
+              containerPort: 8443
+          args:
+            - "--api.dashboard=true"
+            - "--entrypoints.web.address=:8000"
+            - "--entrypoints.websecure.address=:8443"
+            - "--providers.kubernetescrd=true"

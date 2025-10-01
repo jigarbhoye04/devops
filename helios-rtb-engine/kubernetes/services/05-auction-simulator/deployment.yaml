@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auction-simulator-deployment
+  namespace: helios
+  labels:
+    app: helios
+    component: auction-simulator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helios
+      component: auction-simulator
+  template:
+    metadata:
+      labels:
+        app: helios
+        component: auction-simulator
+    spec:
+      containers:
+        - name: auction-simulator
+          image: ghcr.io/jigarbhoye04/helios/auction-simulator:latest
+          ports:
+            - containerPort: 9001
+          env:
+            - name: KAFKA_BROKER
+              value: kafka.helios.svc.cluster.local:9092
+            - name: KAFKA_BID_RESPONSE_TOPIC
+              value: bid_responses
+            - name: KAFKA_AUCTION_OUTCOME_TOPIC
+              value: auction_outcomes

@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bidding-logic-service-deployment
+  namespace: helios
+  labels:
+    app: helios
+    component: bidding-logic-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: helios
+      component: bidding-logic-service
+  template:
+    metadata:
+      labels:
+        app: helios
+        component: bidding-logic-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9300"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: bidding-logic-service
+          image: ghcr.io/jigarbhoye04/helios/bidding-logic-service:latest
+          ports:
+            - containerPort: 9000
+          env:
+            - name: GRPC_USER_PROFILE_ADDR
+              valueFrom:
+                configMapKeyRef:
+                  name: bidding-logic-service-config
+                  key: userProfileAddr
+            - name: KAFKA_BID_REQUEST_TOPIC
+              valueFrom:
+                configMapKeyRef:
+                  name: bidding-logic-service-config
+                  key: bidRequestTopic
+            - name: KAFKA_BID_RESPONSE_TOPIC
+              valueFrom:
+                configMapKeyRef:
+                  name: bidding-logic-service-config
+                  key: bidResponseTopic
+            - name: KAFKA_BROKER
+              valueFrom:
+                configMapKeyRef:
+                  name: bidding-logic-service-config
+                  key: kafkaBroker
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 9000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bidding-logic-service-config
+  namespace: helios
+  labels:
+    app: helios
+    component: bidding-logic-service
+data:
+  userProfileAddr: user-profile-service.helios.svc.cluster.local:50051
+  bidRequestTopic: bid_requests
+  bidResponseTopic: bid_responses
+  kafkaBroker: kafka.helios.svc.cluster.local:9092

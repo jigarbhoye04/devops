@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-profile-service-config
+  namespace: helios
+  labels:
+    app: helios
+    component: user-profile-service
+data:
+  grpcPort: "50051"
+  redisHost: redis.helios.svc.cluster.local
+  redisPort: "6379"

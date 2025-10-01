@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  namespace: helios
+  labels:
+    app: helios
+    component: gateway
+spec:
+  selector:
+    app: helios
+    component: gateway
+  ports:
+    - name: web
+      port: 80
+      targetPort: 8000
+    - name: websecure
+      port: 443
+      targetPort: 8443
+  type: ClusterIP

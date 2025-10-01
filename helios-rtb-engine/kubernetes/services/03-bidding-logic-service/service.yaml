@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bidding-logic-service
+  namespace: helios
+  labels:
+    app: helios
+    component: bidding-logic-service
+spec:
+  selector:
+    app: helios
+    component: bidding-logic-service
+  ports:
+    - name: http
+      port: 9000
+      targetPort: 9000
+  type: ClusterIP

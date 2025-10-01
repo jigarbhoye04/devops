@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zookeeper
+  namespace: helios
+  labels:
+    app: helios
+    component: zookeeper
+spec:
+  serviceName: zookeeper
+  selector:
+    matchLabels:
+      app: helios
+      component: zookeeper
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: helios
+        component: zookeeper
+    spec:
+      containers:
+        - name: zookeeper
+          image: bitnami/zookeeper:3.9.2
+          env:
+            - name: ZOO_ENABLE_AUTH
+              value: "no"
+          ports:
+            - containerPort: 2181
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper
+  namespace: helios
+  labels:
+    app: helios
+    component: zookeeper
+spec:
+  clusterIP: None
+  selector:
+    app: helios
+    component: zookeeper
+  ports:
+    - name: client
+      port: 2181
+      targetPort: 2181

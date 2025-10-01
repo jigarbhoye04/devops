@@ -1,0 +1,22 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: helios-gateway
+  namespace: helios
+  labels:
+    app: helios
+    component: gateway
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`bid.helios.local`) && PathPrefix(`/`)
+      kind: Rule
+      services:
+        - name: bid-request-handler-service
+          port: 80
+    - match: Host(`analytics.helios.local`) && PathPrefix(`/`)
+      kind: Rule
+      services:
+        - name: analytics-service
+          port: 8080

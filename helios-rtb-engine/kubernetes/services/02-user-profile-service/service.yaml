@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-profile-service
+  namespace: helios
+  labels:
+    app: helios
+    component: user-profile-service
+spec:
+  selector:
+    app: helios
+    component: user-profile-service
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+  type: ClusterIP

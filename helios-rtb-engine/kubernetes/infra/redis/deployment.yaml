@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: helios
+  labels:
+    app: helios
+    component: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helios
+      component: redis
+  template:
+    metadata:
+      labels:
+        app: helios
+        component: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.2-alpine
+          ports:
+            - containerPort: 6379
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-auth
+                  key: password
+          args: ["--requirepass", "$(REDIS_PASSWORD)"]
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-auth
+  namespace: helios
+  labels:
+    app: helios
+    component: redis
+stringData:
+  password: change-me
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: helios
+  labels:
+    app: helios
+    component: redis
+spec:
+  type: ClusterIP
+  selector:
+    app: helios
+    component: redis
+  ports:
+    - port: 6379
+      targetPort: 6379

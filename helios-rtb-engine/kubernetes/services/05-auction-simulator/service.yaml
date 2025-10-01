@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: auction-simulator
+  namespace: helios
+  labels:
+    app: helios
+    component: auction-simulator
+spec:
+  selector:
+    app: helios
+    component: auction-simulator
+  ports:
+    - name: tcp
+      port: 9001
+      targetPort: 9001
+  type: ClusterIP

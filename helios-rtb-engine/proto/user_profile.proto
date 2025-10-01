@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package helios.userprofile;
+
+option go_package = "github.com/jigarbhoye04/helios/userprofilepb";
+
+service UserProfileService {
+  rpc GetUserProfile (GetUserProfileRequest) returns (GetUserProfileResponse);
+}
+
+message GetUserProfileRequest {
+  string user_id = 1;
+}
+
+message Interest {
+  string category = 1;
+  double score = 2;
+}
+
+message UserProfile {
+  string user_id = 1;
+  string locale = 2;
+  repeated Interest interests = 3;
+}
+
+message GetUserProfileResponse {
+  UserProfile profile = 1;
+}
