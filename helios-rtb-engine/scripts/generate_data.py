@@ -4,44 +4,51 @@ from __future__ import annotations
 import json
 import random
 import uuid
-from pathlib import Path
-
-INTERESTS = ["sports", "fitness", "travel", "tech", "finance", "gaming", "music", "fashion"]
-OUTPUT_DIR = Path(__file__).resolve().parent / "data"
-OUTPUT_DIR.mkdir(exist_ok=True)
 
 
-def random_profile(user_id: str) -> dict[str, object]:
-    interests = random.sample(INTERESTS, k=random.randint(2, 4))
+def generate_bid_request() -> dict[str, object]:
+    """Generate a mock bid request payload."""
+
+    ad_slots = []
+    for slot_id in range(1, random.randint(2, 4)):
+        ad_slots.append(
+            {
+                "id": f"slot-{slot_id}",
+                "size": random.choice([[300, 250], [728, 90], [160, 600]]),
+                "position": random.choice(["above_the_fold", "sidebar", "footer"]),
+                "min_bid": round(random.uniform(0.05, 1.50), 2),
+            }
+        )
+
     return {
-        "user_id": user_id,
-        "locale": random.choice(["en_US", "en_GB", "de_DE", "fr_FR"]),
-        "interests": [
-            {"category": category, "score": round(random.uniform(0.2, 1.0), 2)}
-            for category in interests
-        ],
+        "id": str(uuid.uuid4()),
+        "timestamp": uuid.uuid1().time,
+        "user": {
+            "id": str(uuid.uuid4()),
+            "segments": random.sample(
+                ["sports", "travel", "tech", "finance", "gaming", "lifestyle"],
+                k=3,
+            ),
+        },
+        "site": {
+            "domain": random.choice([
+                "news.example.com",
+                "sports.example.com",
+                "techblog.example.com",
+            ]),
+            "page": random.choice([
+                "https://news.example.com/politics",
+                "https://sports.example.com/latest",
+                "https://techblog.example.com/gadgets",
+            ]),
+        },
+        "ad_slots": ad_slots,
     }
 
 
-def random_bid_request(user_id: str) -> dict[str, object]:
-    return {
-        "request_id": str(uuid.uuid4()),
-        "user_id": user_id,
-        "placement": random.choice(["sidebar", "banner", "video"]),
-        "floor": round(random.uniform(0.01, 1.0), 2),
-    }
-
-
-def main(batch_size: int = 100) -> None:
-    profiles, requests = [], []
-
-    for _ in range(batch_size):
-        user_id = str(uuid.uuid4())
-        profiles.append(random_profile(user_id))
-        requests.append(random_bid_request(user_id))
-
-    (OUTPUT_DIR / "profiles.jsonl").write_text("\n".join(json.dumps(p) for p in profiles))
-    (OUTPUT_DIR / "bid_requests.jsonl").write_text("\n".join(json.dumps(r) for r in requests))
+def main() -> None:
+    bid_request = generate_bid_request()
+    print(json.dumps(bid_request))
 
 
 if __name__ == "__main__":
