@@ -7,8 +7,9 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o bid-request-handler
 
-FROM gcr.io/distroless/base-debian12
-USER nonroot:nonroot
-WORKDIR /
+FROM alpine:3.20 AS runtime
+RUN addgroup -S app && adduser -S app -G app
+WORKDIR /app
 COPY --from=build /app/bid-request-handler ./bid-request-handler
-ENTRYPOINT ["./bid-request-handler"]
+USER app
+ENTRYPOINT ["/app/bid-request-handler"]
