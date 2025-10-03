@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: helios-kafka-config
+  namespace: helios
+  labels:
+    app: helios
+    component: config
+data:
+  KAFKA_BROKERS: kafka-service.helios.svc.cluster.local:9092
+  KAFKA_TOPIC_BID_REQUESTS: bid_requests
+  KAFKA_CONSUMER_GROUP: bidding-logic-consumers

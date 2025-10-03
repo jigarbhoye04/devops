@@ -28,16 +28,16 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: PORT
+            - name: KAFKA_BROKERS
               valueFrom:
                 configMapKeyRef:
-                  name: bid-request-handler-config
-                  key: port
-            - name: KAFKA_BROKER
+                  name: helios-kafka-config
+                  key: KAFKA_BROKERS
+            - name: KAFKA_TOPIC_BID_REQUESTS
               valueFrom:
                 configMapKeyRef:
-                  name: bid-request-handler-config
-                  key: kafkaBroker
+                  name: helios-kafka-config
+                  key: KAFKA_TOPIC_BID_REQUESTS
           readinessProbe:
             httpGet:
               path: /healthz
@@ -50,15 +50,3 @@ spec:
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 20
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: bid-request-handler-config
-  namespace: helios
-  labels:
-    app: helios
-    component: bid-request-handler
-data:
-  port: "8080"
-  kafkaBroker: kafka.helios.svc.cluster.local:9092
