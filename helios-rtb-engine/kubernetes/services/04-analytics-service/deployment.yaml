@@ -57,4 +57,4 @@ metadata:
     app: helios
     component: analytics-service
 stringData:
-  databaseUrl: postgresql://helios:change-me@postgres.helios.svc.cluster.local:5432/helios
+  databaseUrl: postgresql://helios:jigxPostgres@postgres.helios.svc.cluster.local:5432/helios

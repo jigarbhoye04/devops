@@ -40,7 +40,7 @@ metadata:
     app: helios
     component: redis
 stringData:
-  password: change-me
+  password: jigxKubernetesInfraRedis
 ---
 apiVersion: v1
 kind: Service

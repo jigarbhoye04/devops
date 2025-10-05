@@ -123,7 +123,7 @@ metadata:
     app: helios
     component: grafana
 stringData:
-  password: change-me
+  password: jigxKubernetesInfra
 ---
 apiVersion: v1
 kind: Service

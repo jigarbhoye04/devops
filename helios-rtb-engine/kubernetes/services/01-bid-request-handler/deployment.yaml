@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
         - name: bid-request-handler
-          image: ghcr.io/jigarbhoye04/helios/bid-request-handler:latest
+          image: helios/bid-request-handler:phase1
           ports:
             - containerPort: 8080
           env:

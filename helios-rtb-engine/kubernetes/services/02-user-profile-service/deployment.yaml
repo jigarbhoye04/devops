@@ -68,4 +68,4 @@ metadata:
     app: helios
     component: user-profile-service
 stringData:
-  redisPassword: change-me
+  redisPassword: jigxKubServiceRedis

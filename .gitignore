@@ -3,3 +3,10 @@ script.sh
 .env
 
 node_modules/
+
+
+# script generated files.
+go1.22.7.linux-amd64.tar.gz
+wget-log
+minikube-linux-amd64
+bid-request-handler

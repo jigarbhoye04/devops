@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: bidding-logic-service
-          image: ghcr.io/jigarbhoye04/helios/bidding-logic-service:latest
+          image: helios/bidding-logic-service:phase1
           env:
             - name: KAFKA_BROKERS
               valueFrom:
