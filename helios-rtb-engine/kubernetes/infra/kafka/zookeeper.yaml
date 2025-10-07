@@ -21,12 +21,21 @@ spec:
     spec:
       containers:
         - name: zookeeper
-          image: bitnami/zookeeper:3.9.2
+          image: confluentinc/cp-zookeeper:7.5.1
           env:
-            - name: ZOO_ENABLE_AUTH
-              value: "no"
+            - name: ZOOKEEPER_CLIENT_PORT
+              value: "2181"
+            - name: ZOOKEEPER_TICK_TIME
+              value: "2000"
+            - name: ZOOKEEPER_SYNC_LIMIT
+              value: "2"
+            - name: ZOOKEEPER_INIT_LIMIT
+              value: "5"
           ports:
             - containerPort: 2181
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/zookeeper
   volumeClaimTemplates:
     - metadata:
         name: data
