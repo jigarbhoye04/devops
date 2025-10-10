@@ -2,9 +2,14 @@ syntax = "proto3";
 
 package helios.userprofile;
 
-option go_package = "github.com/jigarbhoye04/helios/userprofilepb";
+// This richer data model is chosen to enable more sophisticated bidding logic by providing scored interests and explicit fields.
 
+// Option for Go code generation, adjust if your module path is different.
+option go_package = "github.com/your-username/helios-rtb-engine/proto/userprofile";
+
+// The UserProfileService provides detailed user context for bidding decisions.
 service UserProfileService {
+  // Retrieves a user's profile based on their ID.
   rpc GetUserProfile (GetUserProfileRequest) returns (GetUserProfileResponse);
 }
 
@@ -12,17 +17,26 @@ message GetUserProfileRequest {
   string user_id = 1;
 }
 
+// Represents a single, scored user interest.
 message Interest {
+  // The category of interest, e.g., "sports", "automotive".
   string category = 1;
+  // A score from 0.0 to 1.0 indicating the strength of the interest.
   double score = 2;
 }
 
+// A comprehensive user profile containing multiple signals for ad targeting.
 message UserProfile {
   string user_id = 1;
+  // The user's locale, e.g., "en-US".
   string locale = 2;
+  // A list of all known interests for the user.
   repeated Interest interests = 3;
+  // Other key-value demographic data, e.g., "age_bracket": "25-34".
+  map<string, string> demographics = 4;
 }
 
 message GetUserProfileResponse {
+  // The complete user profile object.
   UserProfile profile = 1;
 }
