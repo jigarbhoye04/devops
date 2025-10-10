@@ -7,8 +7,10 @@ import {
   loadPackageDefinition,
   status,
 } from "@grpc/grpc-js";
-import protoLoader from "@grpc/proto-loader";
+import * as protoLoader from "@grpc/proto-loader";
 import { createClient } from "redis";
+import { config } from "dotenv";
+config({ path: '../../.env' });
 
 interface GetUserProfileRequestMessage {
   userId: string;
@@ -137,7 +139,7 @@ const normalizeProfile = (raw: unknown, fallbackUserId: string): UserProfileMess
 };
 
 const loadProto = (): ProtoGrpcType => {
-  const protoPath = path.resolve(
+  const defaultProtoPath = path.resolve(
     __dirname,
     "..",
     "..",
@@ -145,6 +147,8 @@ const loadProto = (): ProtoGrpcType => {
     "proto",
     "user_profile.proto"
   );
+
+  const protoPath = process.env.PROTO_PATH ?? defaultProtoPath;
 
   const packageDefinition = protoLoader.loadSync(protoPath, {
     longs: String,

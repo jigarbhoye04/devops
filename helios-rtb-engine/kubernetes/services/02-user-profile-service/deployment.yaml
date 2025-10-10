@@ -17,22 +17,16 @@ spec:
       labels:
         app: helios
         component: user-profile-service
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "9200"
-        prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: user-profile-service
-          image: ghcr.io/jigarbhoye04/helios/user-profile-service:latest
+          image: helios/user-profile-service:phase1
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 50051
           env:
-            - name: GRPC_PORT
-              valueFrom:
-                configMapKeyRef:
-                  name: user-profile-service-config
-                  key: grpcPort
+            - name: PROTO_PATH
+              value: /app/proto/user_profile.proto
             - name: REDIS_HOST
               valueFrom:
                 configMapKeyRef:
@@ -43,11 +37,13 @@ spec:
                 configMapKeyRef:
                   name: user-profile-service-config
                   key: redisPort
-            - name: REDIS_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: user-profile-service-secrets
-                  key: redisPassword
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - node dist/seed_redis.js || true
           readinessProbe:
             tcpSocket:
               port: 50051
@@ -58,14 +54,22 @@ spec:
               port: 50051
             initialDelaySeconds: 10
             periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1001
+            runAsGroup: 1001
+            capabilities:
+              drop: ["ALL"]
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 1001
+        fsGroupChangePolicy: "OnRootMismatch"
 ---
-apiVersion: v1
-kind: Secret
-metadata:
-  name: user-profile-service-secrets
-  namespace: helios
-  labels:
-    app: helios
-    component: user-profile-service
-stringData:
-  redisPassword: jigxKubServiceRedis

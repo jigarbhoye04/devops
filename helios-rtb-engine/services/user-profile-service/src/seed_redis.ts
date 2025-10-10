@@ -1,6 +1,9 @@
 import process from "node:process";
 import { createClient } from "redis";
 
+import { config } from "dotenv";
+config({ path: '../../.env' });
+
 type Interest = {
   category: string;
   score: number;

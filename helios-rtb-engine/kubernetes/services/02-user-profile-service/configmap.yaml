@@ -8,5 +8,5 @@ metadata:
     component: user-profile-service
 data:
   grpcPort: "50051"
-  redisHost: redis.helios.svc.cluster.local
+  redisHost: redis-service.helios.svc.cluster.local
   redisPort: "6379"
