@@ -6,9 +6,14 @@ import sys
 import types
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+import grpc
 from dotenv import load_dotenv
+from google.protobuf.json_format import MessageToDict
+from pybreaker import CircuitBreaker, CircuitBreakerError
+
+from . import user_profile_pb2, user_profile_pb2_grpc
 
 if TYPE_CHECKING:
     from kafka import KafkaConsumer  # type: ignore[import-not-found]
@@ -32,6 +37,9 @@ def get_env_var(name: str) -> str:
         log_json("fatal", "Missing required environment variable", fields={"env": name})
         raise SystemExit(1)
     return value
+
+
+USER_PROFILE_BREAKER = CircuitBreaker(fail_max=5, reset_timeout=30)
 
 
 @lru_cache(maxsize=1)
@@ -98,6 +106,65 @@ def create_consumer(brokers: str, topic: str, group_id: str) -> "KafkaConsumer":
         value_deserializer=lambda data: data.decode("utf-8"),
     )
     return consumer
+
+
+def create_user_profile_client(
+    address: str,
+) -> tuple[grpc.Channel, Any]:
+    channel = grpc.insecure_channel(address)
+    stub = user_profile_pb2_grpc.UserProfileServiceStub(channel)
+    return channel, stub
+
+
+def _invoke_user_profile_rpc(
+    stub: Any,
+    user_id: str,
+    timeout_seconds: float,
+) -> Any:
+    request = user_profile_pb2.GetUserProfileRequest(user_id=user_id)  # type: ignore[attr-defined]
+    return stub.GetUserProfile(request, timeout=timeout_seconds)
+
+
+def fetch_user_profile(
+    stub: Any,
+    user_id: str,
+    timeout_seconds: float,
+) -> Any | None:
+    try:
+        response = USER_PROFILE_BREAKER.call(
+            _invoke_user_profile_rpc,
+            stub,
+            user_id,
+            timeout_seconds,
+        )
+    except CircuitBreakerError:
+        log_json(
+            "error",
+            "User profile circuit breaker open; skipping enrichment",
+            fields={"user_id": user_id},
+        )
+        return None
+    except grpc.RpcError as exc:
+        log_json(
+            "error",
+            "User profile RPC failed",
+            fields={
+                "user_id": user_id,
+                "rpc_code": exc.code().name if hasattr(exc, "code") else "unknown",
+                "details": exc.details() if hasattr(exc, "details") else None,
+            },
+        )
+        return None
+
+    log_json(
+        "info",
+        "User profile response received",
+        fields={
+            "user_id": user_id,
+            "response": MessageToDict(response, preserving_proto_field_name=True),
+        },
+    )
+    return response
 
 
 def run() -> None:

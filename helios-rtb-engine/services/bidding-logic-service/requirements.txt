@@ -1,4 +1,7 @@
 kafka-python==2.0.2
 six>=1.16.0
 python-dotenv==1.0.1
+grpcio==1.66.1
+grpcio-tools==1.66.1
+pybreaker==0.7.0
 flake8==7.1.1
