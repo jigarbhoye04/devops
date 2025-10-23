@@ -40,6 +40,7 @@ def get_env_var(name: str) -> str:
 
 
 USER_PROFILE_BREAKER = CircuitBreaker(fail_max=5, reset_timeout=30)
+DEFAULT_USER_PROFILE_TIMEOUT = 2.0
 
 
 @lru_cache(maxsize=1)
@@ -131,7 +132,7 @@ def fetch_user_profile(
     timeout_seconds: float,
 ) -> Any | None:
     try:
-        response = USER_PROFILE_BREAKER.call(
+        return USER_PROFILE_BREAKER.call(
             _invoke_user_profile_rpc,
             stub,
             user_id,
@@ -143,7 +144,6 @@ def fetch_user_profile(
             "User profile circuit breaker open; skipping enrichment",
             fields={"user_id": user_id},
         )
-        return None
     except grpc.RpcError as exc:
         log_json(
             "error",
@@ -154,17 +154,7 @@ def fetch_user_profile(
                 "details": exc.details() if hasattr(exc, "details") else None,
             },
         )
-        return None
-
-    log_json(
-        "info",
-        "User profile response received",
-        fields={
-            "user_id": user_id,
-            "response": MessageToDict(response, preserving_proto_field_name=True),
-        },
-    )
-    return response
+    return None
 
 
 def run() -> None:
@@ -173,16 +163,35 @@ def run() -> None:
     brokers = get_env_var("KAFKA_BROKERS")
     topic = get_env_var("KAFKA_TOPIC_BID_REQUESTS")
     group_id = get_env_var("KAFKA_CONSUMER_GROUP")
+    user_profile_addr = get_env_var("USER_PROFILE_SVC_ADDR")
+
+    timeout_env = os.getenv("USER_PROFILE_SVC_TIMEOUT", str(DEFAULT_USER_PROFILE_TIMEOUT))
+    try:
+        user_profile_timeout = float(timeout_env)
+    except ValueError:
+        log_json(
+            "warning",
+            "Invalid USER_PROFILE_SVC_TIMEOUT; using default",
+            fields={"value": timeout_env},
+        )
+        user_profile_timeout = DEFAULT_USER_PROFILE_TIMEOUT
 
     consumer = create_consumer(brokers, topic, group_id)
+    channel, user_profile_stub = create_user_profile_client(user_profile_addr)
     log_json(
         "info",
         "Kafka consumer started",
-        fields={"topic": topic, "group_id": group_id, "brokers": brokers},
+        fields={
+            "topic": topic,
+            "group_id": group_id,
+            "brokers": brokers,
+            "user_profile_service": user_profile_addr,
+        },
     )
 
     try:
         for record in consumer:
+            raw_value = record.value
             log_json(
                 "info",
                 "Bid request received",
@@ -190,13 +199,64 @@ def run() -> None:
                     "topic": record.topic,
                     "partition": record.partition,
                     "offset": record.offset,
-                    "value": record.value,
+                    "value": raw_value,
                 },
             )
+            try:
+                bid_request = json.loads(raw_value)
+            except json.JSONDecodeError as exc:
+                log_json(
+                    "error",
+                    "Failed to parse bid request JSON",
+                    fields={"payload": raw_value, "error": str(exc)},
+                )
+                continue
+
+            user_id = bid_request.get("user_id")
+            if not isinstance(user_id, str) or not user_id:
+                log_json(
+                    "warning",
+                    "Bid request missing user_id; skipping enrichment",
+                    fields={"bid_request": bid_request},
+                )
+                continue
+
+            log_json(
+                "info",
+                "Processing bid request",
+                fields={"user_id": user_id, "bid_request": bid_request},
+            )
+
+            profile_response = fetch_user_profile(
+                user_profile_stub,
+                user_id,
+                user_profile_timeout,
+            )
+
+            if profile_response is not None:
+                enriched_profile = MessageToDict(
+                    profile_response,
+                    preserving_proto_field_name=True,
+                )
+                log_json(
+                    "info",
+                    "Bid request enriched",
+                    fields={
+                        "user_id": user_id,
+                        "enriched_profile": enriched_profile,
+                    },
+                )
+            else:
+                log_json(
+                    "warning",
+                    "Proceeding without user profile enrichment",
+                    fields={"user_id": user_id},
+                )
     except KeyboardInterrupt:
         log_json("warning", "Consumer interrupted by user")
     finally:
         consumer.close()
+        channel.close()
         log_json("info", "Kafka consumer stopped")
 
 

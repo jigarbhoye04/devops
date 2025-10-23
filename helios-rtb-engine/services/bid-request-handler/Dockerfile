@@ -2,9 +2,9 @@
 
 FROM golang:1.22-alpine AS build
 WORKDIR /app
-COPY go.mod go.sum ./
+COPY services/bid-request-handler/go.mod services/bid-request-handler/go.sum ./
 RUN go mod download
-COPY . .
+COPY services/bid-request-handler/ ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o bid-request-handler
 
 FROM alpine:3.20 AS runtime

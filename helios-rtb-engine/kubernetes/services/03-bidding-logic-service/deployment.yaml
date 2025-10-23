@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: bidding-logic-service
-          image: helios/bidding-logic-service:phase1
+          image: helios/bidding-logic-service:phase2
           env:
             - name: KAFKA_BROKERS
               valueFrom:
