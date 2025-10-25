@@ -16,7 +16,7 @@ from pybreaker import CircuitBreaker, CircuitBreakerError
 from . import user_profile_pb2, user_profile_pb2_grpc
 
 if TYPE_CHECKING:
-    from kafka import KafkaConsumer  # type: ignore[import-not-found]
+    from kafka import KafkaConsumer, KafkaProducer  # type: ignore[import-not-found]
 
 
 def log_json(level: str, message: str, *, fields: dict[str, Any] | None = None) -> None:
@@ -53,6 +53,18 @@ def _load_kafka_consumer() -> type["KafkaConsumer"]:
         _patch_kafka_vendor_six()
         from kafka import KafkaConsumer as imported_consumer  # type: ignore[import-not-found]
     return imported_consumer
+
+
+@lru_cache(maxsize=1)
+def _load_kafka_producer() -> type["KafkaProducer"]:
+    try:
+        from kafka import KafkaProducer as imported_producer  # type: ignore[import-not-found]
+    except ModuleNotFoundError as exc:  # pragma: no cover - defensive path
+        if exc.name not in {"kafka.vendor.six", "kafka.vendor.six.moves"}:
+            raise
+        _patch_kafka_vendor_six()
+        from kafka import KafkaProducer as imported_producer  # type: ignore[import-not-found]
+    return imported_producer
 
 
 @lru_cache(maxsize=1)
@@ -109,6 +121,20 @@ def create_consumer(brokers: str, topic: str, group_id: str) -> "KafkaConsumer":
     return consumer
 
 
+def create_producer(brokers: str) -> "KafkaProducer":
+    kafka_producer_cls = _load_kafka_producer()
+    broker_list = [broker.strip() for broker in brokers.split(",") if broker.strip()]
+    if not broker_list:
+        log_json("fatal", "No valid Kafka brokers provided", fields={"brokers": brokers})
+        raise SystemExit(1)
+
+    producer = kafka_producer_cls(
+        bootstrap_servers=broker_list,
+        value_serializer=lambda data: json.dumps(data).encode("utf-8"),
+    )
+    return producer
+
+
 def create_user_profile_client(
     address: str,
 ) -> tuple[grpc.Channel, Any]:
@@ -157,12 +183,56 @@ def fetch_user_profile(
     return None
 
 
+def generate_bid_response(
+    bid_request: dict[str, Any],
+    user_profile: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """
+    Generate a bid response based on the bid request and user profile.
+    
+    Simple bidding logic:
+    - Base bid is $0.50
+    - Increase bid by $0.20 if user has premium interests
+    - Increase bid by $0.10 per interest category (capped at 3)
+    """
+    base_bid = 0.50
+    bid_price = base_bid
+    
+    # Enhance bid based on user profile
+    if user_profile:
+        interests = user_profile.get("interests", [])
+        if interests:
+            # Add $0.10 per interest, max 3 interests
+            interest_bonus = min(len(interests), 3) * 0.10
+            bid_price += interest_bonus
+        
+        # Check for premium interests (technology, finance, etc.)
+        premium_interests = {"technology", "finance", "automotive", "travel"}
+        if any(interest.lower() in premium_interests for interest in interests):
+            bid_price += 0.20
+    
+    bid_response = {
+        "bid_request_id": bid_request.get("request_id", "unknown"),
+        "user_id": bid_request.get("user_id", "unknown"),
+        "bid_price": round(bid_price, 2),
+        "currency": "USD",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "enriched": user_profile is not None,
+    }
+    
+    if user_profile:
+        bid_response["user_interests"] = user_profile.get("interests", [])
+    
+    return bid_response
+
+
 def run() -> None:
     load_dotenv()
 
     brokers = get_env_var("KAFKA_BROKERS")
     topic = get_env_var("KAFKA_TOPIC_BID_REQUESTS")
     group_id = get_env_var("KAFKA_CONSUMER_GROUP")
+    bid_response_topic = os.getenv("KAFKA_TOPIC_BID_RESPONSES", "bid_responses")
     user_profile_addr = get_env_var("USER_PROFILE_SVC_ADDR")
 
     timeout_env = os.getenv("USER_PROFILE_SVC_TIMEOUT", str(DEFAULT_USER_PROFILE_TIMEOUT))
@@ -177,14 +247,16 @@ def run() -> None:
         user_profile_timeout = DEFAULT_USER_PROFILE_TIMEOUT
 
     consumer = create_consumer(brokers, topic, group_id)
+    producer = create_producer(brokers)
     channel, user_profile_stub = create_user_profile_client(user_profile_addr)
     log_json(
         "info",
-        "Kafka consumer started",
+        "Kafka consumer and producer started",
         fields={
             "topic": topic,
             "group_id": group_id,
             "brokers": brokers,
+            "bid_response_topic": bid_response_topic,
             "user_profile_service": user_profile_addr,
         },
     )
@@ -233,6 +305,7 @@ def run() -> None:
                 user_profile_timeout,
             )
 
+            enriched_profile = None
             if profile_response is not None:
                 enriched_profile = MessageToDict(
                     profile_response,
@@ -252,12 +325,50 @@ def run() -> None:
                     "Proceeding without user profile enrichment",
                     fields={"user_id": user_id},
                 )
+
+            # Generate bid response
+            bid_response = generate_bid_response(bid_request, enriched_profile)
+            
+            log_json(
+                "info",
+                "Bid response generated",
+                fields={
+                    "bid_request_id": bid_response["bid_request_id"],
+                    "bid_price": bid_response["bid_price"],
+                    "enriched": bid_response["enriched"],
+                },
+            )
+
+            # Produce bid response to Kafka
+            try:
+                future = producer.send(bid_response_topic, value=bid_response)
+                future.get(timeout=10)  # Wait for acknowledgment
+                log_json(
+                    "info",
+                    "Bid response published",
+                    fields={
+                        "topic": bid_response_topic,
+                        "bid_request_id": bid_response["bid_request_id"],
+                    },
+                )
+            except Exception as exc:
+                log_json(
+                    "error",
+                    "Failed to publish bid response",
+                    fields={
+                        "topic": bid_response_topic,
+                        "bid_request_id": bid_response["bid_request_id"],
+                        "error": str(exc),
+                    },
+                )
+                
     except KeyboardInterrupt:
         log_json("warning", "Consumer interrupted by user")
     finally:
         consumer.close()
+        producer.close()
         channel.close()
-        log_json("info", "Kafka consumer stopped")
+        log_json("info", "Kafka consumer and producer stopped")
 
 
 if __name__ == "__main__":

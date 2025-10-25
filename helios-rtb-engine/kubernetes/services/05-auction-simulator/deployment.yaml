@@ -30,3 +30,9 @@ spec:
               value: bid_responses
             - name: KAFKA_AUCTION_OUTCOME_TOPIC
               value: auction_outcomes
+            - name: KAFKA_CONSUMER_GROUP
+              value: auction-simulator-group
+            - name: MIN_BID_THRESHOLD
+              value: "0.5"
+            - name: WIN_PROBABILITY
+              value: "0.7"

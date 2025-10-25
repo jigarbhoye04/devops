@@ -37,3 +37,9 @@ spec:
                 configMapKeyRef:
                   name: helios-kafka-config
                   key: KAFKA_CONSUMER_GROUP
+            - name: KAFKA_TOPIC_BID_RESPONSES
+              value: bid_responses
+            - name: USER_PROFILE_SVC_ADDR
+              value: user-profile-service.helios.svc.cluster.local:50051
+            - name: USER_PROFILE_SVC_TIMEOUT
+              value: "2.0"
