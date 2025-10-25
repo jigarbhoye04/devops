@@ -1,53 +1,156 @@
+---
+# Analytics Service - API Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: analytics-service-deployment
+  name: analytics-api-deployment
   namespace: helios
   labels:
     app: helios
     component: analytics-service
+    role: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: helios
+      component: analytics-service
+      role: api
+  template:
+    metadata:
+      labels:
+        app: helios
+        component: analytics-service
+        role: api
+    spec:
+      containers:
+        - name: analytics-api
+          image: helios/analytics-service:phase3
+          ports:
+            - containerPort: 8000
+              name: http
+          command: ["./entrypoint.sh", "api"]
+          env:
+            - name: DJANGO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: analytics-service-secrets
+                  key: django-secret-key
+            - name: DEBUG
+              value: "False"
+            - name: ALLOWED_HOSTS
+              value: "*"
+            - name: DB_NAME
+              value: "helios_analytics"
+            - name: DB_USER
+              value: "helios"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: analytics-service-secrets
+                  key: db-password
+            - name: DB_HOST
+              value: "postgres.helios.svc.cluster.local"
+            - name: DB_PORT
+              value: "5432"
+            - name: KAFKA_BROKERS
+              value: "kafka.helios.svc.cluster.local:9092"
+            - name: KAFKA_TOPIC_AUCTION_OUTCOMES
+              value: "auction_outcomes"
+            - name: KAFKA_CONSUMER_GROUP
+              value: "analytics-service-group"
+            - name: LOG_LEVEL
+              value: "INFO"
+          readinessProbe:
+            httpGet:
+              path: /api/outcomes/
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/outcomes/
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+---
+# Analytics Service - Kafka Consumer Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-consumer-deployment
+  namespace: helios
+  labels:
+    app: helios
+    component: analytics-service
+    role: consumer
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: helios
       component: analytics-service
+      role: consumer
   template:
     metadata:
       labels:
         app: helios
         component: analytics-service
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "8080"
-        prometheus.io/path: "/metrics"
+        role: consumer
     spec:
       containers:
-        - name: analytics-service
-          image: ghcr.io/jigarbhoye04/helios/analytics-service:latest
-          ports:
-            - containerPort: 8080
+        - name: analytics-consumer
+          image: helios/analytics-service:phase3
+          command: ["./entrypoint.sh", "consumer"]
           env:
-            - name: PORT
-              value: "8080"
-            - name: DATABASE_URL
+            - name: DJANGO_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: analytics-service-secrets
-                  key: databaseUrl
-          readinessProbe:
-            httpGet:
-              path: /healthz
-              port: 8080
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 8080
-            initialDelaySeconds: 10
-            periodSeconds: 20
+                  key: django-secret-key
+            - name: DEBUG
+              value: "False"
+            - name: ALLOWED_HOSTS
+              value: "*"
+            - name: DB_NAME
+              value: "helios_analytics"
+            - name: DB_USER
+              value: "helios"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: analytics-service-secrets
+                  key: db-password
+            - name: DB_HOST
+              value: "postgres.helios.svc.cluster.local"
+            - name: DB_PORT
+              value: "5432"
+            - name: KAFKA_BROKERS
+              value: "kafka.helios.svc.cluster.local:9092"
+            - name: KAFKA_TOPIC_AUCTION_OUTCOMES
+              value: "auction_outcomes"
+            - name: KAFKA_CONSUMER_GROUP
+              value: "analytics-service-group"
+            - name: LOG_LEVEL
+              value: "INFO"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "300m"
+
 ---
+# Secret for Analytics Service
 apiVersion: v1
 kind: Secret
 metadata:
@@ -56,5 +159,7 @@ metadata:
   labels:
     app: helios
     component: analytics-service
+type: Opaque
 stringData:
-  databaseUrl: postgresql://helios:jigxPostgres@postgres.helios.svc.cluster.local:5432/helios
+  django-secret-key: "django-insecure-change-this-in-production-k8s-secret"
+  db-password: "jigxPostgres"
