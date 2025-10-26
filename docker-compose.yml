@@ -1,44 +1,7 @@
 version: '3.8'
 
 services:
-  # 1. Frontend Next.js App
-  frontend:
-    build:
-      context: ./frontend
-    ports:
-      - '3000:3000'
-    networks:
-      - app-network
-
-  # 2. User Microservice
-  user-service:
-    build:
-      context: ./services/user-service
-    ports:
-      - '8081:8080' # Map container port 8080 to host port 8081
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - KAFKA_BROKER=kafka:9092
-    depends_on:
-      - postgres
-      - kafka
-    networks:
-      - app-network
-
-  # 3. Email Microservice
-  email-service:
-    build:
-      context: ./services/email-service
-    ports:
-      - '8082:8080' # Map container port 8080 to host port 8082
-    environment:
-      - KAFKA_BROKER=kafka:9092
-    depends_on:
-      - kafka
-    networks:
-      - app-network
-
-  # 4. PostgreSQL Database
+  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     environment:
@@ -68,12 +31,16 @@ services:
       - zookeeper
     ports:
       - '9092:9092'
+      - '29092:29092'
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_INTERNAL://kafka:29092,PLAINTEXT://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
     networks:
       - app-network
 

@@ -11,6 +11,7 @@ Usage:
 import json
 import sys
 import types
+import socket
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from functools import lru_cache
@@ -20,6 +21,14 @@ from django.conf import settings
 from django.utils.dateparse import parse_datetime
 
 from outcomes.models import AuctionOutcome
+
+# Prefer IPv4 over IPv6
+socket.getaddrinfo = lambda host, port, *args, **kwargs: [(socket.AF_INET, socket.SOCK_STREAM, 6, '', (host, port))]
+
+# Configuration toggle for consumer timeout
+# Set to True to enable timeout (consumer exits when no messages after timeout_ms)
+# Set to False for continuous mode (consumer runs indefinitely)
+ENABLE_CONSUMER_TIMEOUT = False
 
 
 def log_json(level, message, **fields):
@@ -90,17 +99,10 @@ class Command(BaseCommand):
             default=None,
             help='Maximum number of messages to process before exiting (default: unlimited)'
         )
-        parser.add_argument(
-            '--timeout',
-            type=int,
-            default=1000,
-            help='Consumer timeout in milliseconds (default: 1000)'
-        )
     
     def handle(self, *args, **options):
         """Main command handler."""
         max_messages = options['max_messages']
-        timeout_ms = options['timeout']
         
         # Get configuration from Django settings
         brokers = settings.KAFKA_BROKERS
@@ -114,21 +116,27 @@ class Command(BaseCommand):
             topic=topic,
             group_id=group_id,
             max_messages=max_messages,
+            consumer_timeout_enabled=ENABLE_CONSUMER_TIMEOUT,
         )
         
         # Create Kafka consumer
         KafkaConsumer = _load_kafka_consumer()
         broker_list = [b.strip() for b in brokers.split(',') if b.strip()]
         
-        consumer = KafkaConsumer(
-            topic,
-            bootstrap_servers=broker_list,
-            group_id=group_id,
-            auto_offset_reset='earliest',
-            enable_auto_commit=True,
-            value_deserializer=lambda data: data.decode('utf-8'),
-            consumer_timeout_ms=timeout_ms,
-        )
+        # Build consumer configuration
+        consumer_config = {
+            'bootstrap_servers': broker_list,
+            'group_id': group_id,
+            'auto_offset_reset': 'earliest',
+            'enable_auto_commit': True,
+            'value_deserializer': lambda data: data.decode('utf-8'),
+        }
+        
+        # Only set consumer_timeout_ms if timeout is enabled
+        if ENABLE_CONSUMER_TIMEOUT:
+            consumer_config['consumer_timeout_ms'] = 1000
+        
+        consumer = KafkaConsumer(topic, **consumer_config)
         
         log_json("info", "Kafka consumer started", topic=topic)
         
@@ -197,6 +205,8 @@ class Command(BaseCommand):
                     )
                     error_count += 1
                     
+        except StopIteration:
+            log_json("info", "Consumer reached end of topic")
         except KeyboardInterrupt:
             log_json("warning", "Consumer interrupted by user")
         finally:

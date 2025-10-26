@@ -26,6 +26,7 @@ spec:
       containers:
         - name: analytics-api
           image: helios/analytics-service:phase3
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
               name: http
@@ -41,9 +42,9 @@ spec:
             - name: ALLOWED_HOSTS
               value: "*"
             - name: DB_NAME
-              value: "helios_analytics"
+              value: "helios_db"
             - name: DB_USER
-              value: "helios"
+              value: "admin"
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -54,7 +55,7 @@ spec:
             - name: DB_PORT
               value: "5432"
             - name: KAFKA_BROKERS
-              value: "kafka.helios.svc.cluster.local:9092"
+              value: "kafka.helios.svc.cluster.local:29092"
             - name: KAFKA_TOPIC_AUCTION_OUTCOMES
               value: "auction_outcomes"
             - name: KAFKA_CONSUMER_GROUP
@@ -65,13 +66,13 @@ spec:
             httpGet:
               path: /api/outcomes/
               port: 8000
-            initialDelaySeconds: 10
+            initialDelaySeconds: 15
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /api/outcomes/
               port: 8000
-            initialDelaySeconds: 15
+            initialDelaySeconds: 20
             periodSeconds: 20
           resources:
             requests:
@@ -109,6 +110,7 @@ spec:
       containers:
         - name: analytics-consumer
           image: helios/analytics-service:phase3
+          imagePullPolicy: IfNotPresent
           command: ["./entrypoint.sh", "consumer"]
           env:
             - name: DJANGO_SECRET_KEY
@@ -121,9 +123,9 @@ spec:
             - name: ALLOWED_HOSTS
               value: "*"
             - name: DB_NAME
-              value: "helios_analytics"
+              value: "helios_db"
             - name: DB_USER
-              value: "helios"
+              value: "admin"
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -134,7 +136,7 @@ spec:
             - name: DB_PORT
               value: "5432"
             - name: KAFKA_BROKERS
-              value: "kafka.helios.svc.cluster.local:9092"
+              value: "kafka.helios.svc.cluster.local:29092"
             - name: KAFKA_TOPIC_AUCTION_OUTCOMES
               value: "auction_outcomes"
             - name: KAFKA_CONSUMER_GROUP
@@ -161,5 +163,5 @@ metadata:
     component: analytics-service
 type: Opaque
 stringData:
-  django-secret-key: "django-insecure-change-this-in-production-k8s-secret"
-  db-password: "jigxPostgres"
+  django-secret-key: "vrj-(ey63el_mhdl#f5)79-vfh+j3tp^(mpu=g3tlls$(u5x^8"
+  db-password: "admin"

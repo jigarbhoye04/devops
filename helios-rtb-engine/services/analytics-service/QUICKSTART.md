@@ -18,12 +18,14 @@
 
 3. **Initialize Database**
    ```bash
-   # Run migrations
+   # Run migrations (REQUIRED - creates all tables)
    python manage.py migrate
    
    # Create superuser (optional)
    python manage.py createsuperuser
    ```
+   
+   ⚠️ **Important**: If you get a "table does not exist" error when testing the API, you skipped the migrations step. Run `python manage.py migrate` first.
 
 4. **Start Services**
    
@@ -42,8 +44,11 @@
    # View all outcomes
    curl http://localhost:8000/api/outcomes/
    
-   # View statistics
+   # Get statistics
    curl http://localhost:8000/api/outcomes/stats/
+
+   # Get winning outcomes only
+   curl http://localhost:8000/api/outcomes/?win_status=true
    
    # Access admin interface
    # Open browser: http://localhost:8000/admin/
@@ -55,50 +60,288 @@
    ```bash
    docker build -t helios/analytics-service:phase3 .
    ```
-
-2. **Run API Container**
+   
+   ✅ **Verify build succeeded:**
    ```bash
-   docker run -p 8000:8000 \
-     -e DB_HOST=postgres \
-     -e DB_PASSWORD=yourpassword \
-     -e KAFKA_BROKERS=kafka:9092 \
-     helios/analytics-service:phase3 api
+   docker images | grep helios/analytics-service
    ```
 
-3. **Run Consumer Container**
+2. **Verify Database & Kafka are running in Docker**
+   ```bash
+   # Check if postgres is running
+   docker ps | grep postgres
+   
+   # Check if kafka is running
+   docker ps | grep kafka
+   ```
+
+3. **Run API Container**
+   ```bash
+   docker run -p 8000:8000 \
+     --network devops_app-network \
+     -e DB_HOST=postgres \
+     -e DB_NAME=helios_db \
+     -e DB_USER=admin \
+     -e DB_PASSWORD=admin \
+     -e KAFKA_BROKERS=kafka:29092 \
+     -e KAFKA_TOPIC_AUCTION_OUTCOMES=auction_outcomes \
+     -e KAFKA_CONSUMER_GROUP=analytics-service-group \
+     helios/analytics-service:phase3 api
+   ```
+   
+   ✅ **Verify API is running:**
+   ```bash
+   curl http://localhost:8000/api/outcomes/
+   ```
+
+4. **Run Consumer Container** (in separate terminal)
    ```bash
    docker run \
+     --network devops_app-network \
      -e DB_HOST=postgres \
-     -e DB_PASSWORD=yourpassword \
-     -e KAFKA_BROKERS=kafka:9092 \
+     -e DB_NAME=helios_db \
+     -e DB_USER=admin \
+     -e DB_PASSWORD=admin \
+     -e KAFKA_BROKERS=kafka:29092 \
+     -e KAFKA_TOPIC_AUCTION_OUTCOMES=auction_outcomes \
+     -e KAFKA_CONSUMER_GROUP=analytics-service-group \
      helios/analytics-service:phase3 consumer
+   ```
+   
+   ✅ **Verify consumer is processing:**
+   ```bash
+   docker logs <consumer-container-id>
+   ```
+
+5. **Test API from Docker**
+   ```bash
+   # View all outcomes
+   curl http://localhost:8000/api/outcomes/
+   
+   # Get statistics
+   curl http://localhost:8000/api/outcomes/stats/
+   
+   # Filter by win status
+   curl http://localhost:8000/api/outcomes/?win_status=true
    ```
 
 ### Kubernetes Deployment
 
-1. **Deploy to Cluster**
+#### Quick Start
+```bash
+# One command deployment (from helios-rtb-engine directory):
+cd ../../.. && ./scripts/deploy_analytics_k8s.sh
+
+# Then port-forward:
+kubectl port-forward -n helios svc/analytics-service 8000:8000
+
+# Test in another terminal:
+curl http://localhost:8000/api/outcomes/stats/
+```
+
+#### Prerequisites
+
+1. **Enable Kubernetes in Docker Desktop**
+   - Open Docker Desktop → Settings → Kubernetes
+   - ✅ Check "Enable Kubernetes"
+   - Wait for status indicator to show Kubernetes is running (bottom-left corner)
+   - This may take 1-3 minutes on first setup
+   
+   **Verify Kubernetes is ready:**
+   ```bash
+   kubectl cluster-info
+   # Should output cluster URLs, NOT "connection refused" error
+   ```
+
+2. **Dependencies Running**
+   - PostgreSQL must be accessible from Kubernetes
+   - Kafka must be accessible from Kubernetes
+   - Both are configured to use in-cluster DNS names:
+     - `postgres.helios.svc.cluster.local:5432`
+     - `kafka.helios.svc.cluster.local:29092`
+
+#### Step-by-Step Deployment
+
+**Option A: Automated Deployment (Recommended)**
+
+```bash
+cd helios-rtb-engine
+./scripts/deploy_analytics_k8s.sh
+
+# Wait for output showing all pods ready
+```
+
+**Option B: Manual Deployment**
+
+1. **Create namespace**
+   ```bash
+   kubectl create namespace helios
+   ```
+
+2. **Deploy analytics service**
    ```bash
    kubectl apply -f kubernetes/services/04-analytics-service/
    ```
 
-2. **Verify Deployment**
+3. **Verify deployment**
    ```bash
-   # Check pods
+   # Check deployments
+   kubectl get deployments -n helios
+
+   # Check pods (wait for Running status)
    kubectl get pods -n helios -l component=analytics-service
-   
-   # Check logs
-   kubectl logs -n helios -l role=api --tail=50
-   kubectl logs -n helios -l role=consumer -f
    ```
 
-3. **Test API**
+#### Testing the Deployment
+
+1. **Port forward the API service**
    ```bash
-   # Port forward
    kubectl port-forward -n helios svc/analytics-service 8000:8000
-   
-   # Test endpoint
-   curl http://localhost:8000/api/outcomes/stats/
    ```
+
+2. **In another terminal, test the API**
+   ```bash
+   # List outcomes (should be empty initially)
+   curl http://localhost:8000/api/outcomes/
+   
+   # Get statistics
+   curl http://localhost:8000/api/outcomes/stats/
+   
+   # Test filtering
+   curl "http://localhost:8000/api/outcomes/?win_status=true"
+   ```
+
+3. **View pod logs**
+   ```bash
+   # API pod logs
+   kubectl logs -n helios -l role=api -f --tail=50
+
+   # Consumer pod logs
+   kubectl logs -n helios -l role=consumer -f --tail=50
+   ```
+
+#### Pod Breakdown
+
+**API Deployment (2 replicas)**
+- Handles REST API requests on port 8000
+- Endpoint: `/api/outcomes/`, `/api/outcomes/stats/`
+- Resource limits: 512Mi memory, 500m CPU
+
+**Consumer Deployment (1 replica)**
+- Reads from Kafka topic `auction_outcomes`
+- Processes and stores messages in PostgreSQL
+- Runs continuously (no timeout)
+
+#### Monitoring & Debugging
+
+```bash
+# Watch pod status in real-time
+kubectl get pods -n helios -w
+
+# View all resources in namespace
+kubectl get all -n helios
+
+# Describe a specific pod for issues
+kubectl describe pod -n helios <pod-name>
+
+# View pod events
+kubectl get events -n helios --sort-by='.lastTimestamp'
+
+# Check pod environment variables
+kubectl exec -n helios <pod-name> -- env | grep DB_
+
+# Get pod details
+kubectl get pods -n helios -o wide
+
+# Check pod resource usage
+kubectl top pods -n helios
+```
+
+#### Troubleshooting
+
+**Problem: Pods stuck in Pending state**
+```bash
+# Check events
+kubectl get events -n helios --sort-by='.lastTimestamp'
+
+# Most likely: Docker image not available
+# Solution: Build the Docker image first
+docker build -t helios/analytics-service:phase3 .
+```
+
+**Problem: CrashLoopBackOff**
+```bash
+# View logs to see error
+kubectl logs -n helios <pod-name>
+
+# Check environment configuration
+kubectl describe deployment -n helios analytics-api-deployment
+
+# Verify secrets created properly
+kubectl get secrets -n helios
+kubectl describe secret -n helios analytics-service-secrets
+```
+
+**Problem: Connection refused errors in logs**
+```bash
+# Verify PostgreSQL is accessible
+kubectl run -it --rm debug --image=alpine --restart=Never -- \
+  nc -zv postgres.helios.svc.cluster.local 5432
+
+# Verify Kafka is accessible
+kubectl run -it --rm debug --image=alpine --restart=Never -- \
+  nc -zv kafka.helios.svc.cluster.local 29092
+```
+
+**Problem: API returns 502 Bad Gateway**
+```bash
+# Check pod status
+kubectl get pods -n helios -l role=api
+
+# Check API pod logs
+kubectl logs -n helios -l role=api -f
+
+# Verify service is exposing endpoints correctly
+kubectl get svc -n helios analytics-service -o yaml
+```
+
+#### Cleanup
+
+```bash
+# Delete analytics service deployment
+kubectl delete -f kubernetes/services/04-analytics-service/
+
+# Delete namespace (removes all resources in it)
+kubectl delete namespace helios
+
+# Stop Kubernetes in Docker Desktop (optional)
+# Settings → Kubernetes → Uncheck "Enable Kubernetes"
+```
+
+#### Common Tasks
+
+```bash
+# Scale up API replicas to 3
+kubectl scale deployment -n helios analytics-api-deployment --replicas=3
+
+# Rolling restart of pods
+kubectl rollout restart deployment -n helios analytics-api-deployment
+
+# View resource usage
+kubectl top pods -n helios
+
+# Port-forward consumer logs
+kubectl logs -n helios -l role=consumer -f --tail=100
+
+# Execute command in a running pod
+kubectl exec -n helios <pod-name> -- django-admin shell
+
+# Copy files from pod
+kubectl cp helios/<pod-name>:/path/to/file ./local-file
+
+# Port-forward multiple ports
+kubectl port-forward -n helios svc/analytics-service 8000:8000 &
+```
 
 ## 📊 API Endpoints
 
@@ -169,6 +412,12 @@ curl "http://localhost:8000/api/outcomes/?win_status=true"
 - `LOG_LEVEL` (default: INFO)
 
 ## 🐛 Troubleshooting
+
+### "relation outcomes_auctionoutcome does not exist"
+This means migrations haven't been run. Fix it:
+```bash
+python manage.py migrate
+```
 
 ### Database Connection Issues
 ```bash

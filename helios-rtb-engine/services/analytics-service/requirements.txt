@@ -1,4 +1,4 @@
-Django==5.0.6
+Django==5.2.7
 djangorestframework==3.15.1
 psycopg2-binary==2.9.9
 kafka-python==2.0.2
