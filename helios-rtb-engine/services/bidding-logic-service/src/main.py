@@ -183,45 +183,193 @@ def fetch_user_profile(
     return None
 
 
+def calculate_bid_price_from_scores(
+    interests: list[dict[str, Any]],
+) -> tuple[float, str]:
+    """
+    Calculate bid price based on scored interests from user profile.
+    
+    Bidding Strategy:
+    - Find interest with highest score
+    - If highest score > 0.9: bid $0.10
+    - If highest score between 0.7-0.9: bid $0.05
+    - Otherwise: bid minimum $0.01
+    
+    Args:
+        interests: List of interest dicts with 'name' and 'score'
+        
+    Returns:
+        Tuple of (bid_price, winning_interest_name)
+    """
+    if not interests:
+        log_json(
+            "debug",
+            "No interests provided, using minimum bid",
+            fields={"bid_price": 0.01},
+        )
+        return 0.01, "none"
+    
+    # Find interest with highest score
+    highest_interest = max(interests, key=lambda x: x.get("score", 0.0))
+    highest_score = highest_interest.get("score", 0.0)
+    interest_name = highest_interest.get("name", "unknown")
+    
+    # Determine bid price based on score
+    if highest_score > 0.9:
+        bid_price = 0.10
+        tier = "premium"
+    elif highest_score >= 0.7:
+        bid_price = 0.05
+        tier = "standard"
+    else:
+        bid_price = 0.01
+        tier = "minimum"
+    
+    log_json(
+        "info",
+        "Bid price calculated from interest scores",
+        fields={
+            "highest_interest": interest_name,
+            "highest_score": highest_score,
+            "bid_price": bid_price,
+            "tier": tier,
+        },
+    )
+    
+    return bid_price, interest_name
+
+
+def select_ad_creative(
+    bid_price: float,
+    winning_interest: str,
+    enriched: bool,
+) -> dict[str, Any]:
+    """
+    Select an ad creative based on bid price and user interest.
+    
+    Args:
+        bid_price: The calculated bid price
+        winning_interest: The interest with highest score
+        enriched: Whether the bid was enriched with user profile
+        
+    Returns:
+        Dict containing ad creative information
+    """
+    # Map interests to ad campaigns
+    creative_mapping = {
+        "technology": {
+            "creative_id": "tech_001",
+            "title": "Latest Tech Gadgets",
+            "image_url": "https://cdn.helios.example/ads/tech_gadgets.jpg",
+            "landing_url": "https://advertiser.example/tech",
+        },
+        "sports": {
+            "creative_id": "sports_001",
+            "title": "Premium Sports Equipment",
+            "image_url": "https://cdn.helios.example/ads/sports_gear.jpg",
+            "landing_url": "https://advertiser.example/sports",
+        },
+        "finance": {
+            "creative_id": "finance_001",
+            "title": "Smart Investment Solutions",
+            "image_url": "https://cdn.helios.example/ads/finance_invest.jpg",
+            "landing_url": "https://advertiser.example/finance",
+        },
+        "travel": {
+            "creative_id": "travel_001",
+            "title": "Exclusive Travel Deals",
+            "image_url": "https://cdn.helios.example/ads/travel_deals.jpg",
+            "landing_url": "https://advertiser.example/travel",
+        },
+    }
+    
+    # Select creative based on interest
+    creative = creative_mapping.get(
+        winning_interest.lower(),
+        {
+            "creative_id": "default_001",
+            "title": "Discover Amazing Products",
+            "image_url": "https://cdn.helios.example/ads/default.jpg",
+            "landing_url": "https://advertiser.example/",
+        },
+    )
+    
+    # Add bid tier information
+    creative["bid_tier"] = (
+        "premium" if bid_price >= 0.10
+        else "standard" if bid_price >= 0.05
+        else "minimum"
+    )
+    # Ensure the dict value is a string to satisfy static type checkers
+    creative["targeted"] = "true" if enriched else "false"
+    
+    return creative
+
+
 def generate_bid_response(
     bid_request: dict[str, Any],
     user_profile: dict[str, Any] | None,
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
     """
     Generate a bid response based on the bid request and user profile.
     
-    Simple bidding logic:
-    - Base bid is $0.50
-    - Increase bid by $0.20 if user has premium interests
-    - Increase bid by $0.10 per interest category (capped at 3)
+    Sophisticated bidding logic using scored interests:
+    - Leverages interest scores from user profile
+    - Calculates bid price based on highest scoring interest
+    - Selects appropriate ad creative
+    - Returns None if no bid should be placed
     """
-    base_bid = 0.50
-    bid_price = base_bid
+    bid_request_id = bid_request.get("request_id", "unknown")
+    user_id = bid_request.get("user_id", "unknown")
     
-    # Enhance bid based on user profile
-    if user_profile:
-        interests = user_profile.get("interests", [])
-        if interests:
-            # Add $0.10 per interest, max 3 interests
-            interest_bonus = min(len(interests), 3) * 0.10
-            bid_price += interest_bonus
+    # Extract profile data if available
+    if user_profile and "profile" in user_profile:
+        profile = user_profile["profile"]
+        interests = profile.get("interests", [])
         
-        # Check for premium interests (technology, finance, etc.)
-        premium_interests = {"technology", "finance", "automotive", "travel"}
-        if any(interest.lower() in premium_interests for interest in interests):
-            bid_price += 0.20
-    
-    bid_response = {
-        "bid_request_id": bid_request.get("request_id", "unknown"),
-        "user_id": bid_request.get("user_id", "unknown"),
-        "bid_price": round(bid_price, 2),
-        "currency": "USD",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "enriched": user_profile is not None,
-    }
-    
-    if user_profile:
-        bid_response["user_interests"] = user_profile.get("interests", [])
+        # Calculate bid price from scored interests
+        bid_price, winning_interest = calculate_bid_price_from_scores(interests)
+        
+        # Select ad creative
+        ad_creative = select_ad_creative(bid_price, winning_interest, True)
+        
+        # Build enriched bid response
+        bid_response = {
+            "bid_request_id": bid_request_id,
+            "user_id": user_id,
+            "bid_price": round(bid_price, 2),
+            "currency": "USD",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "enriched": True,
+            "winning_interest": winning_interest,
+            "interest_score": next(
+                (i["score"] for i in interests if i.get("name") == winning_interest),
+                0.0,
+            ),
+            "user_interests": [i.get("name", "") for i in interests],
+            "ad_creative": ad_creative,
+        }
+        
+    else:
+        # No user profile - use default minimum bid
+        log_json(
+            "info",
+            "No user profile available, using default minimum bid",
+            fields={"user_id": user_id},
+        )
+        
+        bid_price = 0.01
+        ad_creative = select_ad_creative(bid_price, "none", False)
+        
+        bid_response = {
+            "bid_request_id": bid_request_id,
+            "user_id": user_id,
+            "bid_price": round(bid_price, 2),
+            "currency": "USD",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "enriched": False,
+            "ad_creative": ad_creative,
+        }
     
     return bid_response
 
@@ -329,6 +477,14 @@ def run() -> None:
             # Generate bid response
             bid_response = generate_bid_response(bid_request, enriched_profile)
             
+            if bid_response is None:
+                log_json(
+                    "info",
+                    "No bid generated for request",
+                    fields={"bid_request_id": bid_request.get("request_id", "unknown")},
+                )
+                continue
+            
             log_json(
                 "info",
                 "Bid response generated",
@@ -336,6 +492,7 @@ def run() -> None:
                     "bid_request_id": bid_response["bid_request_id"],
                     "bid_price": bid_response["bid_price"],
                     "enriched": bid_response["enriched"],
+                    "winning_interest": bid_response.get("winning_interest", "none"),
                 },
             )
 

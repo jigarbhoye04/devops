@@ -1,1 +1,184 @@
-# Postgres deployment manifest will be defined here.
+---
+# PostgreSQL Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+  namespace: helios
+  labels:
+    app: helios
+    component: postgres
+type: Opaque
+stringData:
+  postgres-password: "jigxPostgres"
+  postgres-user: "helios"
+  postgres-db: "helios_analytics"
+
+---
+# PostgreSQL PersistentVolumeClaim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: helios
+  labels:
+    app: helios
+    component: postgres
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  # Use default storage class
+  # storageClassName: standard
+
+---
+# PostgreSQL ConfigMap for initialization
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-config
+  namespace: helios
+  labels:
+    app: helios
+    component: postgres
+data:
+  init.sql: |
+    -- Create helios_analytics database if it doesn't exist
+    SELECT 'CREATE DATABASE helios_analytics'
+    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'helios_analytics')\gexec
+    
+    -- Grant privileges
+    GRANT ALL PRIVILEGES ON DATABASE helios_analytics TO helios;
+
+---
+# PostgreSQL StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: helios
+  labels:
+    app: helios
+    component: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helios
+      component: postgres
+  template:
+    metadata:
+      labels:
+        app: helios
+        component: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+              protocol: TCP
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: postgres-password
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: postgres-db
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - helios
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - helios
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+        - name: init-scripts
+          configMap:
+            name: postgres-init-config
+
+---
+# PostgreSQL Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: helios
+  labels:
+    app: helios
+    component: postgres
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app: helios
+    component: postgres
+  clusterIP: None  # Headless service for StatefulSet
+
+---
+# PostgreSQL Service (ClusterIP for general access)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: helios
+  labels:
+    app: helios
+    component: postgres
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app: helios
+    component: postgres
