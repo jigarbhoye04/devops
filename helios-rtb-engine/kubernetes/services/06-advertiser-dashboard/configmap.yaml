@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: advertiser-dashboard-config
+  namespace: helios
+  labels:
+    app: helios
+    component: advertiser-dashboard
+data:
+  # API endpoint for analytics service
+  # This will be used by the frontend to fetch data
+  NEXT_PUBLIC_ANALYTICS_API_URL: "http://analytics-api-service.helios.svc.cluster.local:8000"

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 import types
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -14,6 +15,7 @@ from google.protobuf.json_format import MessageToDict
 from pybreaker import CircuitBreaker, CircuitBreakerError
 
 from . import user_profile_pb2, user_profile_pb2_grpc
+from . import metrics
 
 if TYPE_CHECKING:
     from kafka import KafkaConsumer, KafkaProducer  # type: ignore[import-not-found]
@@ -157,20 +159,33 @@ def fetch_user_profile(
     user_id: str,
     timeout_seconds: float,
 ) -> Any | None:
+    start_time = time.time()
     try:
-        return USER_PROFILE_BREAKER.call(
+        result = USER_PROFILE_BREAKER.call(
             _invoke_user_profile_rpc,
             stub,
             user_id,
             timeout_seconds,
         )
+        duration = time.time() - start_time
+        metrics.user_profile_rpc_duration.observe(duration)
+        metrics.user_profile_enrichment_total.labels(status='success').inc()
+        
+        # Update circuit breaker state (0 = closed)
+        metrics.circuit_breaker_state.labels(service='user_profile').set(0)
+        return result
     except CircuitBreakerError:
+        metrics.user_profile_enrichment_total.labels(status='circuit_open').inc()
+        metrics.circuit_breaker_state.labels(service='user_profile').set(1)  # 1 = open
         log_json(
             "error",
             "User profile circuit breaker open; skipping enrichment",
             fields={"user_id": user_id},
         )
     except grpc.RpcError as exc:
+        duration = time.time() - start_time
+        metrics.user_profile_rpc_duration.observe(duration)
+        metrics.user_profile_enrichment_total.labels(status='failure').inc()
         log_json(
             "error",
             "User profile RPC failed",
@@ -191,9 +206,10 @@ def calculate_bid_price_from_scores(
     
     Bidding Strategy:
     - Find interest with highest score
-    - If highest score > 0.9: bid $0.10
-    - If highest score between 0.7-0.9: bid $0.05
-    - Otherwise: bid minimum $0.01
+    - If highest score > 0.9: bid $1.20 (premium tier)
+    - If highest score between 0.7-0.9: bid $0.85 (standard tier)
+    - If highest score between 0.5-0.7: bid $0.60 (mid tier)
+    - Otherwise: bid minimum $0.35 (base tier)
     
     Args:
         interests: List of interest dicts with 'name' and 'score'
@@ -205,9 +221,9 @@ def calculate_bid_price_from_scores(
         log_json(
             "debug",
             "No interests provided, using minimum bid",
-            fields={"bid_price": 0.01},
+            fields={"bid_price": 0.35},
         )
-        return 0.01, "none"
+        return 0.35, "none"
     
     # Find interest with highest score
     highest_interest = max(interests, key=lambda x: x.get("score", 0.0))
@@ -216,14 +232,17 @@ def calculate_bid_price_from_scores(
     
     # Determine bid price based on score
     if highest_score > 0.9:
-        bid_price = 0.10
+        bid_price = 1.20
         tier = "premium"
     elif highest_score >= 0.7:
-        bid_price = 0.05
+        bid_price = 0.85
         tier = "standard"
+    elif highest_score >= 0.5:
+        bid_price = 0.60
+        tier = "mid"
     else:
-        bid_price = 0.01
-        tier = "minimum"
+        bid_price = 0.35
+        tier = "base"
     
     log_json(
         "info",
@@ -319,59 +338,82 @@ def generate_bid_response(
     - Selects appropriate ad creative
     - Returns None if no bid should be placed
     """
-    bid_request_id = bid_request.get("request_id", "unknown")
-    user_id = bid_request.get("user_id", "unknown")
+    start_time = time.time()
     
-    # Extract profile data if available
-    if user_profile and "profile" in user_profile:
-        profile = user_profile["profile"]
-        interests = profile.get("interests", [])
+    try:
+        bid_request_id = bid_request.get("request_id", "unknown")
+        user_id = bid_request.get("user_id", "unknown")
         
-        # Calculate bid price from scored interests
-        bid_price, winning_interest = calculate_bid_price_from_scores(interests)
+        # Extract profile data if available
+        if user_profile and "profile" in user_profile:
+            profile = user_profile["profile"]
+            interests = profile.get("interests", [])
+            
+            # Calculate bid price from scored interests
+            bid_price, winning_interest = calculate_bid_price_from_scores(interests)
+            
+            # Record bid price distribution
+            metrics.bid_price_distribution.observe(bid_price)
+            
+            # Select ad creative
+            ad_creative = select_ad_creative(bid_price, winning_interest, True)
+            
+            # Build enriched bid response
+            bid_response = {
+                "bid_request_id": bid_request_id,
+                "user_id": user_id,
+                "bid_price": round(bid_price, 2),
+                "currency": "USD",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "enriched": True,
+                "winning_interest": winning_interest,
+                "interest_score": next(
+                    (i["score"] for i in interests if i.get("name") == winning_interest),
+                    0.0,
+                ),
+                "user_interests": [i.get("name", "") for i in interests],
+                "ad_creative": ad_creative,
+            }
+            
+        else:
+            # No user profile - use default minimum bid
+            log_json(
+                "info",
+                "No user profile available, using default minimum bid",
+                fields={"user_id": user_id},
+            )
+            
+            bid_price = 0.35  # Updated from 0.01 to match new minimum pricing
+            metrics.bid_price_distribution.observe(bid_price)
+            ad_creative = select_ad_creative(bid_price, "none", False)
+            
+            bid_response = {
+                "bid_request_id": bid_request_id,
+                "user_id": user_id,
+                "bid_price": round(bid_price, 2),
+                "currency": "USD",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "enriched": False,
+                "ad_creative": ad_creative,
+            }
         
-        # Select ad creative
-        ad_creative = select_ad_creative(bid_price, winning_interest, True)
+        # Record metrics
+        duration = time.time() - start_time
+        metrics.bid_response_generation_duration.observe(duration)
+        metrics.bid_requests_processed_total.labels(status='success').inc()
         
-        # Build enriched bid response
-        bid_response = {
-            "bid_request_id": bid_request_id,
-            "user_id": user_id,
-            "bid_price": round(bid_price, 2),
-            "currency": "USD",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "enriched": True,
-            "winning_interest": winning_interest,
-            "interest_score": next(
-                (i["score"] for i in interests if i.get("name") == winning_interest),
-                0.0,
-            ),
-            "user_interests": [i.get("name", "") for i in interests],
-            "ad_creative": ad_creative,
-        }
+        return bid_response
         
-    else:
-        # No user profile - use default minimum bid
+    except Exception as exc:
+        duration = time.time() - start_time
+        metrics.bid_response_generation_duration.observe(duration)
+        metrics.bid_requests_processed_total.labels(status='error').inc()
         log_json(
-            "info",
-            "No user profile available, using default minimum bid",
-            fields={"user_id": user_id},
+            "error",
+            "Failed to generate bid response",
+            fields={"error": str(exc)},
         )
-        
-        bid_price = 0.01
-        ad_creative = select_ad_creative(bid_price, "none", False)
-        
-        bid_response = {
-            "bid_request_id": bid_request_id,
-            "user_id": user_id,
-            "bid_price": round(bid_price, 2),
-            "currency": "USD",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "enriched": False,
-            "ad_creative": ad_creative,
-        }
-    
-    return bid_response
+        return None
 
 
 def run() -> None:
@@ -394,6 +436,14 @@ def run() -> None:
         )
         user_profile_timeout = DEFAULT_USER_PROFILE_TIMEOUT
 
+    # Start Prometheus metrics server
+    metrics_port = int(os.getenv("METRICS_PORT", "8001"))
+    try:
+        metrics.start_metrics_server(metrics_port)
+        log_json("info", f"Prometheus metrics server started on port {metrics_port}")
+    except Exception as exc:
+        log_json("error", f"Failed to start metrics server: {exc}")
+
     consumer = create_consumer(brokers, topic, group_id)
     producer = create_producer(brokers)
     channel, user_profile_stub = create_user_profile_client(user_profile_addr)
@@ -411,113 +461,121 @@ def run() -> None:
 
     try:
         for record in consumer:
-            raw_value = record.value
-            log_json(
-                "info",
-                "Bid request received",
-                fields={
-                    "topic": record.topic,
-                    "partition": record.partition,
-                    "offset": record.offset,
-                    "value": raw_value,
-                },
-            )
+            metrics.active_bid_processing.inc()
             try:
-                bid_request = json.loads(raw_value)
-            except json.JSONDecodeError as exc:
-                log_json(
-                    "error",
-                    "Failed to parse bid request JSON",
-                    fields={"payload": raw_value, "error": str(exc)},
-                )
-                continue
-
-            user_id = bid_request.get("user_id")
-            if not isinstance(user_id, str) or not user_id:
-                log_json(
-                    "warning",
-                    "Bid request missing user_id; skipping enrichment",
-                    fields={"bid_request": bid_request},
-                )
-                continue
-
-            log_json(
-                "info",
-                "Processing bid request",
-                fields={"user_id": user_id, "bid_request": bid_request},
-            )
-
-            profile_response = fetch_user_profile(
-                user_profile_stub,
-                user_id,
-                user_profile_timeout,
-            )
-
-            enriched_profile = None
-            if profile_response is not None:
-                enriched_profile = MessageToDict(
-                    profile_response,
-                    preserving_proto_field_name=True,
-                )
+                raw_value = record.value
                 log_json(
                     "info",
-                    "Bid request enriched",
+                    "Bid request received",
                     fields={
-                        "user_id": user_id,
-                        "enriched_profile": enriched_profile,
+                        "topic": record.topic,
+                        "partition": record.partition,
+                        "offset": record.offset,
+                        "value": raw_value,
                     },
                 )
-            else:
-                log_json(
-                    "warning",
-                    "Proceeding without user profile enrichment",
-                    fields={"user_id": user_id},
-                )
+                try:
+                    bid_request = json.loads(raw_value)
+                except json.JSONDecodeError as exc:
+                    metrics.bid_requests_processed_total.labels(status='parse_error').inc()
+                    log_json(
+                        "error",
+                        "Failed to parse bid request JSON",
+                        fields={"payload": raw_value, "error": str(exc)},
+                    )
+                    continue
 
-            # Generate bid response
-            bid_response = generate_bid_response(bid_request, enriched_profile)
-            
-            if bid_response is None:
+                user_id = bid_request.get("user_id")
+                if not isinstance(user_id, str) or not user_id:
+                    metrics.bid_requests_processed_total.labels(status='invalid').inc()
+                    log_json(
+                        "warning",
+                        "Bid request missing user_id; skipping enrichment",
+                        fields={"bid_request": bid_request},
+                    )
+                    continue
+
                 log_json(
                     "info",
-                    "No bid generated for request",
-                    fields={"bid_request_id": bid_request.get("request_id", "unknown")},
+                    "Processing bid request",
+                    fields={"user_id": user_id, "bid_request": bid_request},
                 )
-                continue
-            
-            log_json(
-                "info",
-                "Bid response generated",
-                fields={
-                    "bid_request_id": bid_response["bid_request_id"],
-                    "bid_price": bid_response["bid_price"],
-                    "enriched": bid_response["enriched"],
-                    "winning_interest": bid_response.get("winning_interest", "none"),
-                },
-            )
 
-            # Produce bid response to Kafka
-            try:
-                future = producer.send(bid_response_topic, value=bid_response)
-                future.get(timeout=10)  # Wait for acknowledgment
+                profile_response = fetch_user_profile(
+                    user_profile_stub,
+                    user_id,
+                    user_profile_timeout,
+                )
+
+                enriched_profile = None
+                if profile_response is not None:
+                    enriched_profile = MessageToDict(
+                        profile_response,
+                        preserving_proto_field_name=True,
+                    )
+                    log_json(
+                        "info",
+                        "Bid request enriched",
+                        fields={
+                            "user_id": user_id,
+                            "enriched_profile": enriched_profile,
+                        },
+                    )
+                else:
+                    log_json(
+                        "warning",
+                        "Proceeding without user profile enrichment",
+                        fields={"user_id": user_id},
+                    )
+
+                # Generate bid response
+                bid_response = generate_bid_response(bid_request, enriched_profile)
+                
+                if bid_response is None:
+                    metrics.bid_requests_processed_total.labels(status='no_bid').inc()
+                    log_json(
+                        "info",
+                        "No bid generated for request",
+                        fields={"bid_request_id": bid_request.get("request_id", "unknown")},
+                    )
+                    continue
+                
                 log_json(
                     "info",
-                    "Bid response published",
+                    "Bid response generated",
                     fields={
-                        "topic": bid_response_topic,
                         "bid_request_id": bid_response["bid_request_id"],
+                        "bid_price": bid_response["bid_price"],
+                        "enriched": bid_response["enriched"],
+                        "winning_interest": bid_response.get("winning_interest", "none"),
                     },
                 )
-            except Exception as exc:
-                log_json(
-                    "error",
-                    "Failed to publish bid response",
-                    fields={
-                        "topic": bid_response_topic,
-                        "bid_request_id": bid_response["bid_request_id"],
-                        "error": str(exc),
-                    },
-                )
+
+                # Produce bid response to Kafka
+                try:
+                    future = producer.send(bid_response_topic, value=bid_response)
+                    future.get(timeout=10)  # Wait for acknowledgment
+                    log_json(
+                        "info",
+                        "Bid response published",
+                        fields={
+                            "topic": bid_response_topic,
+                            "bid_request_id": bid_response["bid_request_id"],
+                        },
+                    )
+                except Exception as exc:
+                    metrics.kafka_publish_errors_total.inc()
+                    log_json(
+                        "error",
+                        "Failed to publish bid response",
+                        fields={
+                            "topic": bid_response_topic,
+                            "bid_request_id": bid_response["bid_request_id"],
+                            "error": str(exc),
+                        },
+                    )
+            finally:
+                metrics.active_bid_processing.dec()
                 
     except KeyboardInterrupt:
         log_json("warning", "Consumer interrupted by user")

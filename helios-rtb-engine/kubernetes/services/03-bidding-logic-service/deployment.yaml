@@ -17,10 +17,18 @@ spec:
       labels:
         app: helios
         component: bidding-logic-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8001"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: bidding-logic-service
-          image: helios/bidding-logic-service:phase2
+          image: helios/bidding-logic-service:phase4
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8001
+              name: metrics
           env:
             - name: KAFKA_BROKERS
               valueFrom:
@@ -43,3 +51,5 @@ spec:
               value: user-profile-service.helios.svc.cluster.local:50051
             - name: USER_PROFILE_SVC_TIMEOUT
               value: "2.0"
+            - name: METRICS_PORT
+              value: "8001"

@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: advertiser-dashboard-deployment
+  namespace: helios
+  labels:
+    app: helios
+    component: advertiser-dashboard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: helios
+      component: advertiser-dashboard
+  template:
+    metadata:
+      labels:
+        app: helios
+        component: advertiser-dashboard
+      annotations:
+        prometheus.io/scrape: "false" # Next.js doesn't expose metrics by default
+    spec:
+      containers:
+      - name: dashboard
+        image: helios/advertiser-dashboard:phase4
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3000"
+        - name: HOSTNAME
+          value: "0.0.0.0"
+        - name: NEXT_PUBLIC_ANALYTICS_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: advertiser-dashboard-config
+              key: NEXT_PUBLIC_ANALYTICS_API_URL
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+      restartPolicy: Always

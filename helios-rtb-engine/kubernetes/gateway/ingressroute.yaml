@@ -1,4 +1,4 @@
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: helios-gateway
@@ -10,13 +10,74 @@ spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`bid.helios.local`) && PathPrefix(`/`)
+    # Bid Request Handler - /bid endpoint
+    - match: PathPrefix(`/bid`)
       kind: Rule
       services:
         - name: bid-request-handler-service
           port: 80
-    - match: Host(`analytics.helios.local`) && PathPrefix(`/`)
+      middlewares:
+        - name: strip-bid-prefix
+    
+    # Analytics Service API - /api/analytics/ endpoints
+    - match: PathPrefix(`/api/analytics`)
       kind: Rule
       services:
         - name: analytics-service
-          port: 8080
+          port: 8000
+      middlewares:
+        - name: strip-analytics-prefix
+    
+    # Analytics Service API - Direct /api/outcomes/ endpoints (for dashboard)
+    - match: PathPrefix(`/api/outcomes`)
+      kind: Rule
+      services:
+        - name: analytics-service
+          port: 8000
+    
+    # Grafana - /grafana endpoint
+    - match: PathPrefix(`/grafana`)
+      kind: Rule
+      services:
+        - name: grafana
+          port: 3000
+    
+    # Prometheus - /prometheus endpoint
+    - match: PathPrefix(`/prometheus`)
+      kind: Rule
+      services:
+        - name: prometheus
+          port: 9090
+    
+    # Advertiser Dashboard - All other requests go to frontend
+    - match: PathPrefix(`/`)
+      kind: Rule
+      services:
+        - name: advertiser-dashboard-service
+          port: 3000
+      priority: 1
+
+---
+# Middleware to strip /bid prefix when forwarding to bid-request-handler
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-bid-prefix
+  namespace: helios
+spec:
+  stripPrefix:
+    prefixes:
+      - /bid
+
+---
+# Middleware to strip /api/outcomes prefix when forwarding to analytics service
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-analytics-prefix
+  namespace: helios
+spec:
+  stripPrefix:
+    prefixes:
+      - /analytics
+

@@ -14,7 +14,12 @@ spec:
     - name: web
       port: 80
       targetPort: 8000
+      nodePort: 30080
     - name: websecure
       port: 443
       targetPort: 8443
-  type: ClusterIP
+      nodePort: 30443
+    - name: dashboard
+      port: 8080
+      targetPort: 8080
+  type: NodePort

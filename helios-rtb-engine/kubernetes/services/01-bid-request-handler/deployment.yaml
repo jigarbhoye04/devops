@@ -19,14 +19,18 @@ spec:
         component: bid-request-handler
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "9100"
+        prometheus.io/port: "2112"
         prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: bid-request-handler
-          image: helios/bid-request-handler:phase1
+          image: helios/bid-request-handler:phase4
+          imagePullPolicy: Never
           ports:
             - containerPort: 8080
+              name: http
+            - containerPort: 2112
+              name: metrics
           env:
             - name: KAFKA_BROKERS
               valueFrom:

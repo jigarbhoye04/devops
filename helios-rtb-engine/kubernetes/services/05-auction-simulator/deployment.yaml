@@ -20,7 +20,8 @@ spec:
     spec:
       containers:
         - name: auction-simulator
-          image: ghcr.io/jigarbhoye04/helios/auction-simulator:latest
+          image: helios/auction-simulator:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9001
           env:
@@ -33,6 +34,6 @@ spec:
             - name: KAFKA_CONSUMER_GROUP
               value: auction-simulator-group
             - name: MIN_BID_THRESHOLD
-              value: "0.5"
+              value: "0.30"
             - name: WIN_PROBABILITY
               value: "0.7"

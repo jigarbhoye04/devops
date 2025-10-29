@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: user-profile-service
-          image: helios/user-profile-service:phase1
+          image: helios/user-profile-service:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 50051
@@ -37,13 +37,14 @@ spec:
                 configMapKeyRef:
                   name: user-profile-service-config
                   key: redisPort
-          lifecycle:
-            postStart:
-              exec:
-                command:
-                  - /bin/sh
-                  - -c
-                  - node dist/seed_redis.js || true
+          # Temporarily disabled - causing PostStartHookError
+          # lifecycle:
+          #   postStart:
+          #     exec:
+          #       command:
+          #         - /bin/sh
+          #         - -c
+          #         - node dist/seed_redis.js || true
           readinessProbe:
             tcpSocket:
               port: 50051
@@ -61,15 +62,5 @@ spec:
             limits:
               cpu: 250m
               memory: 256Mi
-          securityContext:
-            allowPrivilegeEscalation: false
-            runAsNonRoot: true
-            runAsUser: 1001
-            runAsGroup: 1001
-            capabilities:
-              drop: ["ALL"]
-      securityContext:
-        runAsNonRoot: true
-        fsGroup: 1001
-        fsGroupChangePolicy: "OnRootMismatch"
+          # Removed securityContext - using Dockerfile USER instead
 ---

@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: analytics-api
-          image: helios/analytics-service:phase3
+          image: helios/analytics-service:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
@@ -42,20 +42,20 @@ spec:
             - name: ALLOWED_HOSTS
               value: "*"
             - name: DB_NAME
-              value: "helios_db"
+              value: "helios_analytics"
             - name: DB_USER
-              value: "admin"
+              value: "helios"
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: analytics-service-secrets
-                  key: db-password
+                  name: postgres-secret
+                  key: postgres-password
             - name: DB_HOST
-              value: "postgres.helios.svc.cluster.local"
+              value: "postgres-service.helios.svc.cluster.local"
             - name: DB_PORT
               value: "5432"
             - name: KAFKA_BROKERS
-              value: "kafka.helios.svc.cluster.local:29092"
+              value: "kafka.helios.svc.cluster.local:9092"
             - name: KAFKA_TOPIC_AUCTION_OUTCOMES
               value: "auction_outcomes"
             - name: KAFKA_CONSUMER_GROUP
@@ -109,7 +109,7 @@ spec:
     spec:
       containers:
         - name: analytics-consumer
-          image: helios/analytics-service:phase3
+          image: helios/analytics-service:latest
           imagePullPolicy: IfNotPresent
           command: ["./entrypoint.sh", "consumer"]
           env:
@@ -123,20 +123,20 @@ spec:
             - name: ALLOWED_HOSTS
               value: "*"
             - name: DB_NAME
-              value: "helios_db"
+              value: "helios_analytics"
             - name: DB_USER
-              value: "admin"
+              value: "helios"
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: analytics-service-secrets
-                  key: db-password
+                  name: postgres-secret
+                  key: postgres-password
             - name: DB_HOST
-              value: "postgres.helios.svc.cluster.local"
+              value: "postgres-service.helios.svc.cluster.local"
             - name: DB_PORT
               value: "5432"
             - name: KAFKA_BROKERS
-              value: "kafka.helios.svc.cluster.local:29092"
+              value: "kafka.helios.svc.cluster.local:9092"
             - name: KAFKA_TOPIC_AUCTION_OUTCOMES
               value: "auction_outcomes"
             - name: KAFKA_CONSUMER_GROUP

@@ -2,9 +2,9 @@
 
 FROM python:3.12-slim AS builder
 WORKDIR /app
-COPY services/bidding-logic-service/requirements.txt ./
+COPY requirements.txt ./
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
-COPY services/bidding-logic-service/src ./src
+COPY src ./src
 
 FROM python:3.12-slim AS runtime
 ENV PYTHONPATH=/app/src

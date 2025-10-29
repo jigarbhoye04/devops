@@ -18,6 +18,7 @@ spec:
         app: helios
         component: gateway
     spec:
+      serviceAccountName: traefik-ingress-controller
       containers:
         - name: traefik
           image: traefik:v3.0
@@ -26,8 +27,38 @@ spec:
               containerPort: 8000
             - name: websecure
               containerPort: 8443
+            - name: dashboard
+              containerPort: 8080
           args:
             - "--api.dashboard=true"
+            - "--api.insecure=true"
             - "--entrypoints.web.address=:8000"
             - "--entrypoints.websecure.address=:8443"
+            - "--ping=true"
+            - "--ping.entryPoint=web"
             - "--providers.kubernetescrd=true"
+            - "--providers.kubernetescrd.namespaces=helios"
+            - "--log.level=INFO"
+            - "--accesslog=true"
+            - "--metrics.prometheus=true"
+            - "--metrics.prometheus.addEntryPointsLabels=true"
+            - "--metrics.prometheus.addServicesLabels=true"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
