@@ -21,14 +21,29 @@ export default function WinRateChart({ data }: WinRateChartProps) {
     );
   }
 
+  const toNumber = (value: number | null | undefined): number => {
+    if (typeof value === 'number' && !Number.isNaN(value)) {
+      return value;
+    }
+    return 0;
+  };
+
   // Format data for charts
-  const chartData = data.map((stat) => ({
-    date: new Date(stat.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    winRate: parseFloat(stat.win_rate.toFixed(2)),
-    wins: stat.wins,
-    losses: stat.losses,
-    revenue: parseFloat(stat.total_revenue.toFixed(2)),
-  }));
+  const chartData = data.map((stat) => {
+    const totalBids = toNumber(stat.total);
+    const wins = toNumber(stat.wins);
+    const losses = Math.max(totalBids - wins, 0);
+    const winRatePercent = totalBids > 0 ? (wins / totalBids) * 100 : 0;
+    const revenueValue = toNumber(stat.revenue);
+
+    return {
+      date: new Date(stat.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      winRate: Number(winRatePercent.toFixed(2)),
+      wins,
+      losses,
+      revenue: Number(revenueValue.toFixed(2)),
+    };
+  });
 
   return (
     <div className="space-y-6">

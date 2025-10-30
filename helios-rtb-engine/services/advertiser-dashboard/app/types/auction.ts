@@ -48,10 +48,8 @@ export interface Statistics {
  */
 export interface DailyStats {
   date: string;
-  total_bids: number;
+  total: number;
   wins: number;
-  losses: number;
-  win_rate: number;
-  total_revenue: number;
-  avg_win_price: number;
+  revenue: number | null;
+  avg_win_price: number | null;
 }
