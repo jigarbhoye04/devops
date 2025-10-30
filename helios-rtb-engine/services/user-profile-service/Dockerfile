@@ -31,6 +31,6 @@ RUN addgroup -g 1001 helios \
 	&& mkdir -p /app/proto \
 	&& chown -R helios:helios /app
 # Create a minimal proto file inline for now
-RUN echo 'syntax = "proto3";\npackage helios.userprofile;\nservice UserProfileService {\n  rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse);\n}\nmessage GetUserProfileRequest {\n  string user_id = 1;\n}\nmessage Interest {\n  string category = 1;\n  double score = 2;\n}\nmessage UserProfile {\n  string user_id = 1;\n  string locale = 2;\n  repeated Interest interests = 3;\n  map<string, string> demographics = 4;\n}\nmessage GetUserProfileResponse {\n  UserProfile profile = 1;\n}' > /app/proto/user_profile.proto
+RUN printf 'syntax = "proto3";\npackage helios.userprofile;\nservice UserProfileService {\n  rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse);\n}\nmessage GetUserProfileRequest {\n  string user_id = 1;\n}\nmessage Interest {\n  string category = 1;\n  double score = 2;\n}\nmessage UserProfile {\n  string user_id = 1;\n  string locale = 2;\n  repeated Interest interests = 3;\n  map<string, string> demographics = 4;\n}\nmessage GetUserProfileResponse {\n  UserProfile profile = 1;\n}\n' > /app/proto/user_profile.proto
 USER helios
 CMD ["node", "dist/server.js"]
