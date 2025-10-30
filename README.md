@@ -38,42 +38,42 @@ This project simulates a core component of AdTech: a Real-Time Bidding (RTB) exc
 
 **A Production-Grade Real-Time Bidding Engine**
 
-[Quick Start](#-quick-start) • [Documentation](#-documentation) • [Architecture](#-architecture) • [Contributing](#-contributing)
+[Quick Start](#quick-start) • [Documentation](#documentation) • [Architecture](#architecture) • [Contributing](#contributing)
 
 </div>
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [Overview](#-overview)
-- [Quick Start](#-quick-start)
-- [Documentation](#-documentation)
-- [Architecture](#-architecture)
-- [Technology Stack](#-technology-stack)
-- [Features](#-features)
-- [Project Structure](#-project-structure)
-- [Development](#-development)
-- [Testing](#-testing)
-- [Deployment](#-deployment)
-- [Contributing](#-contributing)
-- [License](#-license)
+- [Overview](#overview)
+- [Quick Start](#quick-start)
+- [Documentation](#documentation)
+- [Architecture](#architecture)
+- [Technology Stack](#technology-stack)
+- [Features](#features)
+- [Project Structure](#project-structure)
+- [Development](#development)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-## 🎯 Overview
+## Overview
 
 **Helios** is a distributed Real-Time Bidding (RTB) Engine that simulates a Demand-Side Platform (DSP) in the AdTech ecosystem. The system processes ad placement opportunities in real-time, enriches them with user data, makes intelligent bidding decisions in under 100 milliseconds, and provides comprehensive analytics.
 
 ### Project Vision
 
 This project demonstrates mastery of:
-- ✅ **Polyglot Programming** - Go, Python, Node.js/TypeScript
-- ✅ **Event-Driven Architecture** - Apache Kafka message streaming
-- ✅ **Microservices Design** - Independent, scalable services
-- ✅ **Database Per Service** - Redis, PostgreSQL, Kafka
-- ✅ **Cloud-Native Deployment** - Docker, Kubernetes, multi-node orchestration
-- ✅ **Production Observability** - Structured logging, metrics, health checks
+- **Polyglot Programming** - Go, Python, Node.js/TypeScript
+- **Event-Driven Architecture** - Apache Kafka message streaming
+- **Microservices Design** - Independent, scalable services
+- **Database Per Service** - Redis, PostgreSQL, Kafka
+- **Cloud-Native Deployment** - Docker, Kubernetes, multi-node orchestration
+- **Production Observability** - Structured logging, metrics, health checks
 
 ### What is Real-Time Bidding?
 
@@ -89,7 +89,7 @@ Helios simulates this entire pipeline end-to-end.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -116,12 +116,12 @@ chmod +x setup.sh test.sh pre_postman_check.sh
 ```
 
 The setup script will:
-- ✅ Build all Docker images
-- ✅ Start infrastructure (Kafka, Redis, PostgreSQL)
-- ✅ Deploy all microservices
-- ✅ Create Kafka topics
-- ✅ Seed sample user data
-- ✅ Run health checks
+- Build all Docker images
+- Start infrastructure (Kafka, Redis, PostgreSQL)
+- Deploy all microservices
+- Create Kafka topics
+- Seed sample user data
+- Run health checks
 
 ### Verify Installation
 
@@ -161,7 +161,7 @@ Then check the dashboard at http://localhost:3000 to see results!
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 ### Getting Started
 - **[Complete Setup Guide](COMPLETE_SETUP_GUIDE.md)** - Comprehensive installation and configuration
@@ -185,7 +185,7 @@ Then check the dashboard at http://localhost:3000 to see results!
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ### System Overview
 
@@ -244,7 +244,7 @@ Kafka: bid_responses              [Redis Cache]
 
 ---
 
-## 💻 Technology Stack
+## Technology Stack
 
 ### Languages & Frameworks
 
@@ -269,39 +269,39 @@ Kafka: bid_responses              [Redis Cache]
 
 ---
 
-## ✨ Features
+## Features
 
 ### Real-Time Processing
-- ⚡ **Sub-100ms** bid request processing
-- 🔄 **Event-driven** architecture with Kafka
-- 📡 **gRPC** for ultra-low latency service communication
+- **Sub-100ms** bid request processing
+- **Event-driven** architecture with Kafka
+- **gRPC** for ultra-low latency service communication
 
 ### User Enrichment
-- 👤 **Profile-based bidding** using Redis cache
-- 🎯 **Interest scoring** (technology, sports, travel, etc.)
-- 💰 **Dynamic pricing** based on user engagement scores
+- **Profile-based bidding** using Redis cache
+- **Interest scoring** (technology, sports, travel, etc.)
+- **Dynamic pricing** based on user engagement scores
 
 ### Analytics & Reporting
-- 📊 **Real-time dashboard** with Next.js
-- 📈 **Statistics API** - win rates, revenue, average prices
-- 🔍 **Advanced filtering** by user, price range, win status
-- 📅 **Daily aggregations** and trend analysis
+- **Real-time dashboard** with Next.js
+- **Statistics API** - win rates, revenue, average prices
+- **Advanced filtering** by user, price range, win status
+- **Daily aggregations** and trend analysis
 
 ### Observability
-- 📝 **Structured JSON logging** across all services
-- 📊 **Prometheus metrics** endpoints
-- ❤️ **Health checks** for every component
-- 🔍 **Request tracing** through the entire pipeline
+- **Structured JSON logging** across all services
+- **Prometheus metrics** endpoints
+- **Health checks** for every component
+- **Request tracing** through the entire pipeline
 
 ### Production-Ready
-- 🐳 **Multi-stage Docker builds** for minimal image sizes
-- 🔒 **Non-root containers** for security
-- 🔧 **Environment-based configuration** (12-factor app)
-- 🚀 **Kubernetes manifests** for multi-node deployment
+- **Multi-stage Docker builds** for minimal image sizes
+- **Non-root containers** for security
+- **Environment-based configuration** (12-factor app)
+- **Kubernetes manifests** for multi-node deployment
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 devops/
@@ -357,7 +357,7 @@ devops/
 
 ---
 
-## 🛠️ Development
+## Development
 
 ### Local Development Setup
 
@@ -424,7 +424,7 @@ docker compose -f helios-rtb-engine/docker-compose.full.yml exec auction-simulat
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ### Automated Testing
 
@@ -498,7 +498,7 @@ python3 helios-rtb-engine/scripts/populate_demo_data.py --count 100 --delay 0.1
 
 ---
 
-## 🚢 Deployment
+## Deployment
 
 ### Docker Compose (Local/Development)
 
@@ -561,7 +561,7 @@ ANALYTICS_API_URL: http://analytics-service-api:8000
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -599,7 +599,7 @@ See [COMPLETE_SETUP_GUIDE.md](COMPLETE_SETUP_GUIDE.md#9-troubleshooting) for det
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please follow these guidelines:
 
@@ -618,7 +618,7 @@ Contributions are welcome! Please follow these guidelines:
 
 ---
 
-## 📊 Monitoring & Metrics
+## Monitoring & Metrics
 
 ### Prometheus Metrics
 
@@ -659,13 +659,13 @@ docker compose -f helios-rtb-engine/docker-compose.full.yml exec redis \
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built with modern microservices architecture principles
 - Inspired by real-world AdTech platforms (Google Ads, The Trade Desk)
@@ -674,7 +674,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 📞 Support
+## Support
 
 For issues, questions, or contributions:
 
@@ -687,8 +687,8 @@ For issues, questions, or contributions:
 
 <div align="center">
 
-**Built with ❤️ using Go, Python, Node.js, Kafka, Redis, and PostgreSQL**
+**Built with using Go, Python, Node.js, Kafka, Redis, and PostgreSQL**
 
-[⬆ Back to top](#helios-rtb-engine)
+[Back to top](#helios-rtb-engine)
 
 </div>
