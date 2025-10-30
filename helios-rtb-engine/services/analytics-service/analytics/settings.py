@@ -7,7 +7,10 @@ import os
 import sys
 from pathlib import Path
 
+from typing import cast
+
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,13 +26,41 @@ env_file = os.path.join(BASE_DIR, '.env')
 if os.path.exists(env_file):
     environ.Env.read_env(env_file)
 
+
+def get_env_str(name: str, fallback: str) -> str:
+    try:
+        return cast(str, env.str(name))
+    except ImproperlyConfigured:
+        return fallback
+
+
+def get_env_bool(name: str, fallback: bool) -> bool:
+    try:
+        return cast(bool, env.bool(name))
+    except ImproperlyConfigured:
+        return fallback
+
+
+def get_env_int(name: str, fallback: int) -> int:
+    try:
+        return cast(int, env.int(name))
+    except ImproperlyConfigured:
+        return fallback
+
+
+def get_env_list(name: str, fallback: list[str]) -> list[str]:
+    try:
+        return cast(list[str], env.list(name))
+    except ImproperlyConfigured:
+        return fallback
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('DJANGO_SECRET_KEY', default='django-insecure-dev-key-change-in-production')
+SECRET_KEY = get_env_str('DJANGO_SECRET_KEY', 'django-insecure-dev-key-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env('DEBUG')
+DEBUG = get_env_bool('DEBUG', False)
 
-ALLOWED_HOSTS = env('ALLOWED_HOSTS')
+ALLOWED_HOSTS = get_env_list('ALLOWED_HOSTS', ['*'])
 
 # Application definition
 INSTALLED_APPS = [
@@ -40,12 +71,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'corsheaders',
     'outcomes',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -78,11 +111,11 @@ WSGI_APPLICATION = 'analytics.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DB_NAME', default='helios_analytics'),
-        'USER': env('DB_USER', default='postgres'),
-        'PASSWORD': env('DB_PASSWORD', default='postgres'),
-        'HOST': env('DB_HOST', default='localhost'),
-        'PORT': env('DB_PORT', default='5432'),
+    'NAME': get_env_str('DB_NAME', 'helios_analytics'),
+    'USER': get_env_str('DB_USER', 'postgres'),
+    'PASSWORD': get_env_str('DB_PASSWORD', 'postgres'),
+    'HOST': get_env_str('DB_HOST', 'localhost'),
+    'PORT': get_env_int('DB_PORT', 5432),
     }
 }
 
@@ -132,9 +165,9 @@ REST_FRAMEWORK = {
 }
 
 # Kafka Configuration
-KAFKA_BROKERS = env('KAFKA_BROKERS', default='localhost:9092')
-KAFKA_TOPIC_AUCTION_OUTCOMES = env('KAFKA_TOPIC_AUCTION_OUTCOMES', default='auction_outcomes')
-KAFKA_CONSUMER_GROUP = env('KAFKA_CONSUMER_GROUP', default='analytics-service-group')
+KAFKA_BROKERS = get_env_str('KAFKA_BROKERS', 'localhost:9092')
+KAFKA_TOPIC_AUCTION_OUTCOMES = get_env_str('KAFKA_TOPIC_AUCTION_OUTCOMES', 'auction_outcomes')
+KAFKA_CONSUMER_GROUP = get_env_str('KAFKA_CONSUMER_GROUP', 'analytics-service-group')
 
 # Logging Configuration
 LOGGING = {
@@ -155,6 +188,17 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': env('LOG_LEVEL', default='INFO'),
+    'level': get_env_str('LOG_LEVEL', 'INFO'),
     },
 }
+
+# Cross-Origin Resource Sharing (CORS)
+CORS_ALLOW_ALL_ORIGINS = get_env_bool('CORS_ALLOW_ALL_ORIGINS', False)
+CORS_ALLOWED_ORIGINS = get_env_list(
+    'CORS_ALLOWED_ORIGINS',
+    [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+    ],
+)
+CORS_ALLOW_CREDENTIALS = get_env_bool('CORS_ALLOW_CREDENTIALS', False)

@@ -1,0 +1,531 @@
+{
+  "info": {
+    "name": "Helios RTB Full Verification",
+    "description": "Comprehensive Postman collection covering REST, metrics, and gRPC checks for the Helios RTB Engine running on localhost.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": {
+      "major": 1,
+      "minor": 1,
+      "patch": 0
+    }
+  },
+  "variable": [
+    { "key": "bid_base_url", "value": "http://localhost:8080", "type": "string" },
+    { "key": "bid_metrics_url", "value": "http://localhost:2112", "type": "string" },
+    { "key": "bidding_metrics_url", "value": "http://localhost:8001", "type": "string" },
+    { "key": "analytics_base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "dashboard_base_url", "value": "http://localhost:3000", "type": "string" },
+    { "key": "test_user_id", "value": "user-001", "type": "string" },
+    { "key": "fallback_user_id", "value": "user-anonymous", "type": "string" },
+    { "key": "proto_path", "value": "proto/user_profile.proto", "type": "string" },
+    { "key": "latest_outcome_id", "value": "", "type": "string" },
+    { "key": "latest_outcome_user", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health Checks",
+      "description": "Ping service health endpoints and base metrics before deeper testing.",
+      "item": [
+        {
+          "name": "Bid Handler Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{bid_base_url}}/healthz"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Analytics API Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{analytics_base_url}}/api/outcomes/"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dashboard Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{dashboard_base_url}}/api/health"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bid Submission",
+      "description": "Drive various bid request scenarios through the bid-request-handler.",
+      "item": [
+        {
+          "name": "Submit Enriched Bid",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"request_id\": \"demo-request-enriched\",\n  \"user_id\": \"{{test_user_id}}\",\n  \"site\": {\n    \"domain\": \"news.example.com\",\n    \"page\": \"https://news.example.com/home\"\n  },\n  \"device\": {\n    \"user_agent\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64)\",\n    \"ip\": \"192.0.2.10\"\n  },\n  \"ad_slots\": [\n    {\n      \"id\": \"slot-1\",\n      \"min_bid\": 0.35,\n      \"format\": [\"300x250\"]\n    }\n  ]\n}"
+            },
+            "url": "{{bid_base_url}}/bid"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 202\", function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Fallback Bid",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"request_id\": \"demo-request-fallback\",\n  \"user_id\": \"{{fallback_user_id}}\",\n  \"site\": {\n    \"domain\": \"travel.example.com\",\n    \"page\": \"https://travel.example.com/top-destinations\"\n  },\n  \"device\": {\n    \"user_agent\": \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)\",\n    \"ip\": \"198.51.100.48\"\n  },\n  \"ad_slots\": [\n    {\n      \"id\": \"slot-7\",\n      \"min_bid\": 0.30,\n      \"format\": [\"728x90\"]\n    }\n  ]\n}"
+            },
+            "url": "{{bid_base_url}}/bid"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 202\", function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Bid Missing User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"request_id\": \"demo-request-missing-user\",\n  \"site\": {\n    \"domain\": \"gaming.example.com\",\n    \"page\": \"https://gaming.example.com/top10\"\n  },\n  \"device\": {\n    \"user_agent\": \"Mozilla/5.0 (X11; Linux x86_64)\",\n    \"ip\": \"203.0.113.21\"\n  },\n  \"ad_slots\": [\n    {\n      \"id\": \"slot-5\",\n      \"min_bid\": 0.42,\n      \"format\": [\"160x600\"]\n    }\n  ]\n}"
+            },
+            "url": "{{bid_base_url}}/bid"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 202\", function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "pm.test(\"Warning header absent\", function () {",
+                  "    pm.expect(pm.response.headers.has('Warning')).to.eql(false);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Analytics API",
+      "description": "Exercise analytics endpoints with different filters and aggregations.",
+      "item": [
+        {
+          "name": "List Auction Outcomes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{analytics_base_url}}/api/outcomes/?page_size=5"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Results array present\", function () {",
+                  "    pm.expect(jsonData.results).to.be.an('array');",
+                  "});",
+                  "if (jsonData.results && jsonData.results.length > 0) {",
+                  "    pm.collectionVariables.set('latest_outcome_id', jsonData.results[0].id);",
+                  "    pm.collectionVariables.set('latest_outcome_user', jsonData.results[0].user_id);",
+                  "}",
+                  "pm.test(\"Stored latest outcome id\", function () {",
+                  "    pm.expect(pm.collectionVariables.get('latest_outcome_id')).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Outcome Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{analytics_base_url}}/api/outcomes/{{latest_outcome_id}}/"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const outcomeId = pm.collectionVariables.get('latest_outcome_id');",
+                  "pm.test('Outcome id captured', function () {",
+                  "    pm.expect(outcomeId, 'Run List Auction Outcomes first').to.exist;",
+                  "});",
+                  "if (!outcomeId) {",
+                  "    pm.test('Skipped because no outcome id was captured', function () { pm.expect(true).to.be.true; });",
+                  "    return;",
+                  "}",
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Matches requested id', function () {",
+                  "    pm.expect(jsonData.id).to.eql(outcomeId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Outcomes by User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{analytics_base_url}}/api/outcomes/?user_id={{test_user_id}}&page_size=5"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('All results match requested user', function () {",
+                  "    var expected = pm.variables.get('test_user_id');",
+                  "    (jsonData.results || []).forEach(function (row) {",
+                  "        pm.expect(row.user_id).to.eql(expected);",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Outcomes by Win Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{analytics_base_url}}/api/outcomes/?win_status=true&page_size=5"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('All results are wins', function () {",
+                  "    (jsonData.results || []).forEach(function (row) {",
+                  "        pm.expect(row.win_status).to.eql(true);",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Outcomes by Price Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{analytics_base_url}}/api/outcomes/?min_price=0.30&max_price=1.00&page_size=5"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Prices fall within requested band', function () {",
+                  "    (jsonData.results || []).forEach(function (row) {",
+                  "        var price = Number(row.win_price || row.bid_price || 0);",
+                  "        pm.expect(price).to.be.at.least(0.30);",
+                  "        pm.expect(price).to.be.at.most(1.00);",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Analytics Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{analytics_base_url}}/api/outcomes/stats/"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Stats payload includes totals', function () {",
+                  "    ['total_outcomes','total_wins','total_losses','win_rate'].forEach(function (key) {",
+                  "        pm.expect(jsonData).to.have.property(key);",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Winning Outcomes Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{analytics_base_url}}/api/outcomes/winners/"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Payload is an array', function () {",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Daily Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{analytics_base_url}}/api/outcomes/daily_stats/"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Monitoring",
+      "description": "Ensure metrics endpoints are reachable.",
+      "item": [
+        {
+          "name": "Bid Handler Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{bid_metrics_url}}/metrics"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Includes bid_requests_total metric', function () {",
+                  "    pm.expect(pm.response.text()).to.include('bid_requests_total');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bidding Logic Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{bidding_metrics_url}}/metrics"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "gRPC",
+      "description": "gRPC requests require selecting the proto file referenced by the proto_path variable after import.",
+      "item": [
+        {
+          "name": "Get User Profile (gRPC)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{test_user_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "grpc://localhost:50051"
+          },
+          "protocolProfileBehavior": {
+            "type": "grpc",
+            "grpc": {
+              "package": "helios.userprofile",
+              "service": "UserProfileService",
+              "method": "GetUserProfile",
+              "protoSource": {
+                "type": "file",
+                "data": "{{proto_path}}"
+              },
+              "metadata": []
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('gRPC invocation executed', function () {",
+                  "    pm.expect(pm.response).to.be.ok;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "protocolProfileBehavior": {}
+}

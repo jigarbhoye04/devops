@@ -2,6 +2,14 @@
 
 Follow these steps after running `./setup.sh` inside WSL to ensure every service is working end to end. All commands assume your current directory is `/mnt/c/Users/Jigar/Documents/GitHub/devops`.
 
+## Automated Smoke Test
+Run the bundled script for a repeatable verification pass. It drives the full pipeline, tails Kafka, inspects analytics (REST + gRPC), and points you to the comprehensive Postman collection for GUI-driven testing.
+```bash
+wsl
+./test.sh
+```
+Add `--skip-postman` if you only need the command-line checks.
+
 ## 1. Confirm Container Health
 ```bash
 wsl
@@ -60,6 +68,19 @@ Expected response: HTTP `202 Accepted`. Review request metrics:
 ```bash
 curl -s http://localhost:2112/metrics | grep bid_requests_total
 ```
+
+### Postman (Manual) Verification
+Import `postman/helios-rtb-smoke.postman_collection.json` for a ready-made suite that covers:
+- Health and metrics endpoints (`/healthz`, `/metrics`, dashboard health)
+- Multiple bid submission scenarios (enriched, fallback, missing user)
+- Full analytics API surface (`/api/outcomes` filters, stats, winners, daily stats)
+- gRPC `GetUserProfile` call (after import, open the request, click **Select Proto File**, and point it to `helios-rtb-engine/proto/user_profile.proto`).
+
+You can also maintain ad-hoc requests manually:
+1. Add a `POST {{bid_base_url}}/bid` with the sample payload.
+2. Duplicate it for other user IDs or payload permutations.
+3. Add reads against `{{analytics_base_url}}/api/outcomes/` to verify persistence.
+4. Use the gRPC tab in Postman with the same proto file to fetch user profiles.
 
 ## 4. Inspect Bid Responses in Kafka
 Confirm the bidding logic produced a response:
