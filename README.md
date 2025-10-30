@@ -27,107 +27,668 @@ This project simulates a core component of AdTech: a Real-Time Bidding (RTB) exc
 
 --- -->
 
-# *Final Draft*
+# Helios RTB Engine
 
-### **Project: "Helios" - A Real-Time Bidding (RTB) Engine**
+<div align="center">
 
-#### 1. Project Vision & Goal
+![Helios RTB Engine](https://img.shields.io/badge/Status-Production%20Ready-success)
+![Docker](https://img.shields.io/badge/Docker-Compose-blue)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-326CE5)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-The goal of Project Helios is to design and build a distributed backend system that simulates a Demand-Side Platform (DSP) in the AdTech ecosystem. The system will receive ad placement opportunities (bid requests) in real-time, enrich these requests with user data, make an intelligent bidding decision in under 100 milliseconds, and log the results for analytics.
+**A Production-Grade Real-Time Bidding Engine**
 
-This project will demonstrate mastery of polyglot programming, diverse database usage, synchronous and asynchronous communication patterns, and cloud-native orchestration and monitoring, fulfilling all the advanced requirements of the assignment.
+[Quick Start](#-quick-start) • [Documentation](#-documentation) • [Architecture](#-architecture) • [Contributing](#-contributing)
 
-#### 2. Core Real-Time Bidding (RTB) Concepts
+</div>
 
-*   **Bid Request:** When a user visits a website with ad space, the ad exchange sends out a "bid request" to multiple DSPs. This request contains information about the ad slot, the website, and an anonymized user ID.
-*   **Bid Response:** A DSP (our system) receives the request, decides if it wants to bid on this ad opportunity, and if so, how much. It sends back a "bid response" with the bid price and the ad creative to display.
-*   **Auction:** The ad exchange runs a real-time auction, and the highest bidder wins.
-*   **Impression:** The winning ad is shown to the user. Our system will receive a notification (a "win notification") if our bid was successful.
+---
 
-#### 3. High-Level System Architecture
+## 📋 Table of Contents
 
-The system is designed as an event-driven pipeline, prioritizing speed and scalability. The core data flow is asynchronous, built around Apache Kafka.
+- [Overview](#-overview)
+- [Quick Start](#-quick-start)
+- [Documentation](#-documentation)
+- [Architecture](#-architecture)
+- [Technology Stack](#-technology-stack)
+- [Features](#-features)
+- [Project Structure](#-project-structure)
+- [Development](#-development)
+- [Testing](#-testing)
+- [Deployment](#-deployment)
+- [Contributing](#-contributing)
+- [License](#-license)
 
-**Architectural Diagram (Conceptual Flow):**
+---
+
+## 🎯 Overview
+
+**Helios** is a distributed Real-Time Bidding (RTB) Engine that simulates a Demand-Side Platform (DSP) in the AdTech ecosystem. The system processes ad placement opportunities in real-time, enriches them with user data, makes intelligent bidding decisions in under 100 milliseconds, and provides comprehensive analytics.
+
+### Project Vision
+
+This project demonstrates mastery of:
+- ✅ **Polyglot Programming** - Go, Python, Node.js/TypeScript
+- ✅ **Event-Driven Architecture** - Apache Kafka message streaming
+- ✅ **Microservices Design** - Independent, scalable services
+- ✅ **Database Per Service** - Redis, PostgreSQL, Kafka
+- ✅ **Cloud-Native Deployment** - Docker, Kubernetes, multi-node orchestration
+- ✅ **Production Observability** - Structured logging, metrics, health checks
+
+### What is Real-Time Bidding?
+
+When a user visits a website with ad space, an auction happens in milliseconds:
+
+1. **Bid Request** - Ad exchange sends opportunity to multiple DSPs (our system)
+2. **User Enrichment** - System looks up user interests and demographics
+3. **Bid Calculation** - Algorithm decides bid price based on user profile
+4. **Auction** - Exchange selects the highest bidder
+5. **Win Notification** - Winner's ad is displayed; system logs the outcome
+
+Helios simulates this entire pipeline end-to-end.
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Windows 10/11** with WSL2 enabled
+- **Docker Desktop** (v4.30+) with WSL2 integration
+- **8GB RAM** minimum (16GB recommended)
+- **10GB** free disk space
+
+### Installation (5 Minutes)
+
+```bash
+# 1. Open WSL terminal
+wsl
+
+# 2. Clone the repository
+git clone https://github.com/jigarbhoye04/devops.git
+cd devops
+
+# 3. Make scripts executable
+chmod +x setup.sh test.sh pre_postman_check.sh
+
+# 4. Start everything
+./setup.sh
+```
+
+The setup script will:
+- ✅ Build all Docker images
+- ✅ Start infrastructure (Kafka, Redis, PostgreSQL)
+- ✅ Deploy all microservices
+- ✅ Create Kafka topics
+- ✅ Seed sample user data
+- ✅ Run health checks
+
+### Verify Installation
+
+```bash
+# Run comprehensive test suite
+./test.sh
+
+# Or quick health check
+./pre_postman_check.sh
+```
+
+### Access Points
+
+Once running, access the system:
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| **Dashboard** | http://localhost:3000 | Advertiser analytics UI |
+| **Analytics API** | http://localhost:8000/api/outcomes/ | REST API for data |
+| **Bid Ingestion** | http://localhost:8080/bid | Submit bid requests |
+| **Metrics** | http://localhost:2112/metrics | Prometheus metrics |
+
+### Send Your First Bid
+
+```bash
+curl -X POST http://localhost:8080/bid \
+  -H "Content-Type: application/json" \
+  -d '{
+    "request_id": "demo-001",
+    "user_id": "user-001",
+    "site": {"domain": "example.com"},
+    "device": {"ip": "192.0.2.1"}
+  }'
+```
+
+Then check the dashboard at http://localhost:3000 to see results!
+
+---
+
+## 📚 Documentation
+
+### Getting Started
+- **[Complete Setup Guide](COMPLETE_SETUP_GUIDE.md)** - Comprehensive installation and configuration
+- **[SETUP.md](SETUP.md)** - WSL/Docker setup specifics
+- **[About Helios](about.md)** - Simple explanation of the system
+
+### Testing & Verification
+- **[TEST_AND_VERIFY.md](TEST_AND_VERIFY.md)** - End-to-end testing procedures
+- **[Demo Guide](DEMO_MONITORING_GUIDE.md)** - How to demo the system
+
+### Architecture
+- **[Architecture Overview](helios-rtb-engine/docs/architecture_and_flow.md)** - System design and data flow
+- **[Phase 1: Core Pipeline](helios-rtb-engine/docs/phases/01-core-pipeline.md)** - Asynchronous processing
+- **[Phase 3: Auction Service](helios-rtb-engine/docs/phases/03-auction-service.md)** - Auction logic
+- **[Phase 3.2: Analytics](helios-rtb-engine/docs/phases/03.2-analytics-service.md)** - Data persistence
+
+### Development
+- **[ADR](Docs/adr.md)** - Architecture Decision Records
+- **[Execution Plan](Docs/exec_plan.md)** - Development workflow
+- **[Development Prompts](Docs/dev_prompts.md)** - LLM-assisted development guide
+
+---
+
+## 🏗️ Architecture
+
+### System Overview
+
+The Helios RTB Engine is an event-driven pipeline built on Apache Kafka:
 
 ```
-[Internet Traffic]
-      |
-      v
-[1. API Gateway] -> [2. Bid Request Handler (Go)] --(Kafka Topic: 'bid_requests')--> [3. Bidding Logic Service (Python)]
-      ^                                                                                    |
-      | (REST API)                                                                         | (gRPC Request)
-      |                                                                                    v
-      |                                                                      [4. User Profile Service (Node.js)] <-(Redis Cache)
-      |
-      '--(Kafka Topic: 'bid_responses')--> [5. Auction Service (Node.js)] --(Kafka Topic: 'auction_outcomes')--> [6. Analytics Service (Python)]
-                                                                                                                   |
-                                                                                                                   v
-                                                                                                     [PostgreSQL / ClickHouse]
-                                                                                                                   |
-                                                                                                                   v
-[Advertiser Dashboard (Next.js)] <---------------------------------------------------------------------------------'
+┌─────────────────────────────────────────────────────────────────┐
+│                        HELIOS RTB ENGINE                         │
+└─────────────────────────────────────────────────────────────────┘
+
+[HTTP Request] 
+      ↓
+┌──────────────────┐
+│ Bid Handler (Go) │ → Kafka: bid_requests
+└──────────────────┘
+      ↓
+┌──────────────────────┐       ┌────────────────────────┐
+│ Bidding Logic (Py)   │──────→│ User Profile (Node.js) │
+│                      │←──────│ (gRPC)                 │
+└──────────────────────┘       └────────────────────────┘
+      ↓                               ↓
+Kafka: bid_responses              [Redis Cache]
+      ↓
+┌─────────────────────┐
+│ Auction (Node.js)   │ → Kafka: auction_outcomes
+└─────────────────────┘
+      ↓
+┌─────────────────────┐       ┌──────────────┐
+│ Analytics (Django)  │──────→│ PostgreSQL   │
+└─────────────────────┘       └──────────────┘
+      ↓
+┌─────────────────────┐
+│ Dashboard (Next.js) │ → [Browser UI]
+└─────────────────────┘
 ```
 
-#### 4. Detailed Service Breakdown
+### Core Services
 
-Here is a detailed look at each microservice, its responsibilities, and technology choices.
+| Service | Language | Port | Responsibilities |
+|---------|----------|------|------------------|
+| **Bid Request Handler** | Go | 8080, 2112 | HTTP ingestion, Kafka producer |
+| **User Profile Service** | Node.js/TypeScript | 50051 | gRPC user data provider, Redis interface |
+| **Bidding Logic Service** | Python | 8001 | Kafka consumer, bid calculation, gRPC client |
+| **Auction Simulator** | Node.js | 9001 | Auction logic, winner determination |
+| **Analytics Service** | Python/Django | 8000 | Data persistence, REST API, Kafka consumer |
+| **Advertiser Dashboard** | Next.js | 3000 | Web UI, data visualization |
 
-| Service Name | Purpose | Primary Technology | Database / Data Store | Inbound Communication | Outbound Communication |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **1. Bid Request Handler** | To ingest a massive volume of incoming bid requests with minimal latency and place them on a message bus for processing. | **Go** | (Stateless) | HTTP/REST from API Gateway | Produces to Kafka Topic (`bid_requests`) |
-| **2. Bidding Logic Service** | The core decision engine. It consumes requests, fetches user context, applies bidding rules/logic, and submits a bid. | **Python (FastAPI)** | (Stateless) | Consumes from Kafka Topic (`bid_requests`) | **gRPC** call to User Profile Service; Produces to Kafka Topic (`bid_responses`) |
-| **3. User Profile Service** | Provides ultra-low-latency access to user profile data (interests, demographics) needed for targeted bidding. | **Node.js (TypeScript, Express)** | **Redis** | **gRPC** from Bidding Logic Service | **gRPC** response to Bidding Logic Service |
-| **4. Auction Service (Simulator)** | Simulates the ad exchange's auction. It consumes bids and determines a winner, publishing the outcome. | **Node.js (JavaScript)** | (Stateless) | Consumes from Kafka Topic (`bid_responses`) | Produces to Kafka Topic (`auction_outcomes`) |
-| **5. Analytics & Reporting Service**| Consumes auction outcomes, aggregates data for reporting, and exposes an API for a dashboard. | **Python (Django)** | **PostgreSQL** or **ClickHouse** | Consumes from Kafka Topic (`auction_outcomes`); REST API from Dashboard | Writes to its database. |
-| **6. Advertiser Dashboard** | A web interface for advertisers to view campaign performance, spend, and other key metrics. | **Next.js (TypeScript)** | (Client-Side) | User interaction in browser | REST API calls to the Analytics Service |
-| **7. Monitoring Stack** | To provide observability into the health and performance of the entire system. | **Prometheus, Grafana, Fluentd, Jaeger** | Prometheus TSDB, Elasticsearch | Scrapes metrics endpoints; Receives logs | Displays data in Grafana/Kibana dashboards |
+### Infrastructure Components
 
-#### 5. Cross-Cutting Concerns & Infrastructure
+| Component | Port | Purpose |
+|-----------|------|---------|
+| **Apache Kafka** | 9092 | Asynchronous message bus (3 topics) |
+| **Redis** | 6379 | User profile cache (sub-5ms lookups) |
+| **PostgreSQL** | 5432 | Analytics database |
+| **Zookeeper** | 2181 | Kafka coordination |
 
-*   **API Gateway:**
-    *   **Technology:** **Traefik** or **Kong**. These are cloud-native gateways that integrate seamlessly with Kubernetes.
-    *   **Responsibilities:**
-        *   **Single Entry Point:** All external traffic (bid requests, dashboard API calls) comes through the gateway.
-        *   **Routing:** Directs incoming requests to the correct service (e.g., `/bid` -> `Bid Request Handler`, `/api/analytics` -> `Analytics Service`).
-        *   **Security:** Terminates TLS, handles API key authentication for the bid endpoint, and JWT validation for the dashboard API.
-        *   **Rate Limiting:** Protects services from being overwhelmed.
+---
 
-*   **Communication Protocols:**
-    *   **Asynchronous (Event-Driven Core):** **Apache Kafka** is the system's backbone. It provides a durable, ordered log of events, decoupling services and allowing them to be scaled, updated, and fail independently without data loss.
-    *   **Synchronous (Low-Latency Request/Response):** **gRPC** is used for the critical, internal request from the `Bidding Logic Service` to the `User Profile Service`. This is chosen over REST because its use of HTTP/2 and Protocol Buffers provides superior performance, which is essential for meeting the sub-100ms bidding deadline.
-    *   **Synchronous (External API):** **REST/HTTP** is used for the external-facing APIs for simplicity and broad compatibility. The `Bid Request Handler` exposes a REST endpoint, and the `Analytics Service` provides a REST API for the Next.js frontend.
+## 💻 Technology Stack
 
-*   **Security Provisions:**
-    *   **TLS Everywhere:** All communication will be encrypted using TLS. This includes external traffic to the API Gateway and, critically, all inter-service communication within the Kubernetes cluster (using a service mesh like Linkerd or Istio, or manual certificate management).
-    *   **Authentication:** The dashboard will use JWT tokens for user sessions. The high-throughput bid endpoint will use a simpler API Key system for authentication.
-    *   **Secrets Management:** Database credentials, API keys, and certificates will be managed securely using **Kubernetes Secrets**.
+### Languages & Frameworks
 
-#### 6. Orchestration & Multi-Laptop Deployment
+- **Go** - High-performance HTTP server (Bid Request Handler)
+- **Python** - FastAPI-based bidding logic, Django REST for analytics
+- **Node.js/TypeScript** - gRPC services, auction simulator, Next.js dashboard
+- **React** - Dashboard frontend with chart visualizations
 
-This is how the system will be physically run across your team's three laptops.
+### Databases & Messaging
 
-*   **Containerization:** Every single microservice will be packaged as a lightweight Docker image with its own `Dockerfile`.
-*   **Kubernetes Cluster Setup:**
-    1.  **Designate a Master Node:** One laptop will be designated as the Kubernetes master node. This node runs the K8s control plane (API server, scheduler, etc.).
-    2.  **Designate Worker Nodes:** The other two laptops will be configured as worker nodes. They will join the cluster managed by the master.
-    3.  **Tooling:** You can use tools like **k3s** or **kubeadm** to simplify the setup of a multi-node cluster on your local network.
-*   **Deployment:**
-    1.  **Kubernetes Manifests:** For each service, you will write YAML files defining `Deployment` (to manage pods), `Service` (to enable network communication), `ConfigMap` (for configuration), and `Secret` objects.
-    2.  **Stateful Services:** Kafka and the databases will be deployed as `StatefulSets` in Kubernetes to ensure stable network identity and persistent storage.
-    3.  **Applying Manifests:** Using `kubectl apply -f <directory>`, you will deploy the entire application stack to your cluster. Kubernetes will automatically schedule the pods (containers) to run across the available worker nodes.
-*   **Circuit Breakers:** A library like **resilience4j** (Java), **Polly** (.NET), or an equivalent in Python/Node.js will be implemented in the `Bidding Logic Service`. If the `User Profile Service` is slow or down, the circuit breaker will trip, allowing the service to fail fast (e.g., by not bidding) instead of causing cascading failures.
+- **Apache Kafka** - Event streaming platform
+- **Redis** - In-memory data store for user profiles
+- **PostgreSQL** - Relational database for analytics
 
-#### 7. Monitoring & Logging Strategy
+### Infrastructure & DevOps
 
-*   **Metrics (The Numbers):**
-    *   **Prometheus:** An open-source monitoring system. Each microservice will expose a `/metrics` endpoint (using a client library) with key application metrics (e.g., `bids_processed_total`, `http_request_duration_seconds`).
-    *   Prometheus will be configured to automatically discover and scrape these endpoints within the Kubernetes cluster.
-*   **Visualization (The Graphs):**
-    *   **Grafana:** A visualization tool. You will connect Grafana to Prometheus as a data source and build dashboards to monitor the health of the entire system in real-time.
-*   **Logging (The Events):**
-    *   **Structured Logging:** All services will log to `stdout` in a structured format (JSON).
-    *   **Fluentd:** Deployed as a `DaemonSet` in Kubernetes, Fluentd will automatically collect these logs from all running containers on every node.
-    *   **Elasticsearch & Kibana (EFK Stack):** Fluentd will forward the logs to Elasticsearch for indexing. Kibana will provide a powerful UI to search, filter, and analyze logs from all services in one place.
-*   **Tracing (The Story of a Request):**
-    *   **Jaeger or Zipkin:** You will integrate an OpenTelemetry or OpenTracing library into your services. This adds a unique trace ID to each incoming request, which is then passed along to downstream services. This allows you to visualize the entire lifecycle of a single bid request as it flows through Kafka, gRPC, and multiple services, making it easy to pinpoint bottlenecks.
+- **Docker** - Multi-stage containerization
+- **Docker Compose** - Local orchestration
+- **Kubernetes** - Production-grade deployment
+- **Prometheus** - Metrics collection
+- **gRPC** - High-performance RPC framework
+
+---
+
+## ✨ Features
+
+### Real-Time Processing
+- ⚡ **Sub-100ms** bid request processing
+- 🔄 **Event-driven** architecture with Kafka
+- 📡 **gRPC** for ultra-low latency service communication
+
+### User Enrichment
+- 👤 **Profile-based bidding** using Redis cache
+- 🎯 **Interest scoring** (technology, sports, travel, etc.)
+- 💰 **Dynamic pricing** based on user engagement scores
+
+### Analytics & Reporting
+- 📊 **Real-time dashboard** with Next.js
+- 📈 **Statistics API** - win rates, revenue, average prices
+- 🔍 **Advanced filtering** by user, price range, win status
+- 📅 **Daily aggregations** and trend analysis
+
+### Observability
+- 📝 **Structured JSON logging** across all services
+- 📊 **Prometheus metrics** endpoints
+- ❤️ **Health checks** for every component
+- 🔍 **Request tracing** through the entire pipeline
+
+### Production-Ready
+- 🐳 **Multi-stage Docker builds** for minimal image sizes
+- 🔒 **Non-root containers** for security
+- 🔧 **Environment-based configuration** (12-factor app)
+- 🚀 **Kubernetes manifests** for multi-node deployment
+
+---
+
+## 📁 Project Structure
+
+```
+devops/
+├── helios-rtb-engine/           # Main project directory
+│   ├── docker-compose.full.yml  # Complete Docker Compose setup
+│   │
+│   ├── services/                # All microservices
+│   │   ├── bid-request-handler/      # Go HTTP server
+│   │   ├── user-profile-service/     # Node.js gRPC service
+│   │   ├── bidding-logic-service/    # Python Kafka consumer
+│   │   ├── auction-simulator/        # Node.js auction engine
+│   │   ├── analytics-service/        # Django API + consumer
+│   │   └── advertiser-dashboard/     # Next.js frontend
+│   │
+│   ├── kubernetes/              # K8s deployment manifests
+│   │   ├── 00-namespace.yaml
+│   │   ├── infra/              # Infrastructure (Kafka, Redis, Postgres)
+│   │   ├── services/           # Application services
+│   │   └── gateway/            # API gateway (Traefik)
+│   │
+│   ├── proto/                   # gRPC protocol definitions
+│   │   └── user_profile.proto
+│   │
+│   ├── scripts/                 # Utility scripts
+│   │   ├── populate_demo_data.py
+│   │   └── generate_data.py
+│   │
+│   └── docs/                    # Documentation
+│       ├── architecture_and_flow.md
+│       ├── phases/             # Development phases
+│       ├── adr/                # Architecture decisions
+│       └── testing/            # Verification guides
+│
+├── postman/                     # API testing collection
+│   └── helios-rtb-smoke.postman_collection.json
+│
+├── Docs/                        # Project-level docs
+│   ├── adr.md                  # High-level ADRs
+│   ├── exec_plan.md            # Execution strategy
+│   └── dev_prompts.md          # Development guide
+│
+├── setup.sh                     # Automated setup script
+├── test.sh                      # Verification script
+├── pre_postman_check.sh        # Health check script
+│
+├── COMPLETE_SETUP_GUIDE.md     # Comprehensive setup guide
+├── SETUP.md                    # WSL/Docker setup
+├── TEST_AND_VERIFY.md          # Testing procedures
+├── DEMO_MONITORING_GUIDE.md    # Demo walkthrough
+├── about.md                    # System overview
+└── README.md                   # This file
+```
+
+---
+
+## 🛠️ Development
+
+### Local Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/jigarbhoye04/devops.git
+cd devops
+
+# Start all services
+./setup.sh
+
+# Watch logs for a specific service
+docker compose -f helios-rtb-engine/docker-compose.full.yml logs -f <service-name>
+```
+
+### Making Changes
+
+When you modify a service:
+
+```bash
+# Rebuild the service
+docker compose -f helios-rtb-engine/docker-compose.full.yml build <service-name>
+
+# Restart the service
+docker compose -f helios-rtb-engine/docker-compose.full.yml up -d <service-name>
+
+# View logs
+docker compose -f helios-rtb-engine/docker-compose.full.yml logs -f <service-name>
+```
+
+### Code Quality
+
+```bash
+# Format code
+npm run format
+
+# Lint code
+npm run lint
+```
+
+### Service-Specific Commands
+
+**Analytics Service (Django):**
+```bash
+# Run migrations
+docker compose -f helios-rtb-engine/docker-compose.full.yml exec analytics-service-api \
+  python manage.py migrate
+
+# Create superuser
+docker compose -f helios-rtb-engine/docker-compose.full.yml exec analytics-service-api \
+  python manage.py createsuperuser
+
+# Run tests
+docker compose -f helios-rtb-engine/docker-compose.full.yml exec analytics-service-api \
+  python manage.py test
+```
+
+**Auction Simulator (Node.js):**
+```bash
+# Run tests
+docker compose -f helios-rtb-engine/docker-compose.full.yml exec auction-simulator \
+  npm test
+```
+
+---
+
+## 🧪 Testing
+
+### Automated Testing
+
+```bash
+# Complete end-to-end test suite
+./test.sh
+
+# Quick health checks
+./pre_postman_check.sh
+```
+
+### Manual Testing
+
+**1. Check all services are running:**
+```bash
+docker compose -f helios-rtb-engine/docker-compose.full.yml ps
+```
+
+**2. Send a test bid request:**
+```bash
+curl -X POST http://localhost:8080/bid \
+  -H "Content-Type: application/json" \
+  -d '{
+    "request_id": "test-001",
+    "user_id": "user-001",
+    "site": {"domain": "test.com"},
+    "device": {"ip": "192.0.2.1"}
+  }'
+```
+
+**3. Query analytics API:**
+```bash
+# Get all outcomes
+curl http://localhost:8000/api/outcomes/
+
+# Get statistics
+curl http://localhost:8000/api/outcomes/stats/
+
+# Get only winners
+curl http://localhost:8000/api/outcomes/winners/
+```
+
+**4. Inspect Kafka topics:**
+```bash
+# View bid requests
+docker compose -f helios-rtb-engine/docker-compose.full.yml exec kafka \
+  kafka-console-consumer --bootstrap-server kafka:29092 \
+  --topic bid_requests --from-beginning --max-messages 1
+
+# View auction outcomes
+docker compose -f helios-rtb-engine/docker-compose.full.yml exec kafka \
+  kafka-console-consumer --bootstrap-server kafka:29092 \
+  --topic auction_outcomes --from-beginning --max-messages 1
+```
+
+### Postman Collection
+
+Import `postman/helios-rtb-smoke.postman_collection.json` into Postman for a comprehensive test suite covering:
+- Health checks
+- Bid submission scenarios
+- Analytics API queries
+- gRPC user profile calls
+- Metrics endpoints
+
+### Load Testing
+
+Generate sustained load:
+```bash
+python3 helios-rtb-engine/scripts/populate_demo_data.py --count 100 --delay 0.1
+```
+
+---
+
+## 🚢 Deployment
+
+### Docker Compose (Local/Development)
+
+```bash
+# Start everything
+./setup.sh
+
+# Stop everything
+docker compose -f helios-rtb-engine/docker-compose.full.yml down
+
+# Complete reset (removes volumes)
+docker compose -f helios-rtb-engine/docker-compose.full.yml down -v
+./setup.sh --reset
+```
+
+### Kubernetes (Production)
+
+```bash
+# Create namespace
+kubectl apply -f helios-rtb-engine/kubernetes/00-namespace.yaml
+
+# Deploy infrastructure
+kubectl apply -f helios-rtb-engine/kubernetes/infra/
+
+# Deploy services
+kubectl apply -f helios-rtb-engine/kubernetes/services/
+
+# Deploy gateway
+kubectl apply -f helios-rtb-engine/kubernetes/gateway/
+
+# Check status
+kubectl get pods -n helios
+kubectl get svc -n helios
+```
+
+### Configuration
+
+All services are configured via environment variables. Key settings in `docker-compose.full.yml`:
+
+**Database:**
+```yaml
+POSTGRES_DB: helios_analytics
+POSTGRES_USER: helios
+POSTGRES_PASSWORD: admin  # Change in production!
+```
+
+**Kafka:**
+```yaml
+KAFKA_BROKERS: kafka:29092
+KAFKA_TOPIC_BID_REQUESTS: bid_requests
+KAFKA_TOPIC_BID_RESPONSES: bid_responses
+KAFKA_TOPIC_AUCTION_OUTCOMES: auction_outcomes
+```
+
+**Services:**
+```yaml
+USER_PROFILE_SVC_ADDR: user-profile-service:50051
+ANALYTICS_API_URL: http://analytics-service-api:8000
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**Docker not running:**
+```bash
+# Verify Docker is accessible
+docker info
+```
+
+**Port conflicts:**
+```bash
+# Stop the stack
+docker compose -f helios-rtb-engine/docker-compose.full.yml down
+
+# Or find what's using the port (Windows PowerShell)
+netstat -ano | findstr :8080
+```
+
+**Container unhealthy:**
+```bash
+# View logs
+docker compose -f helios-rtb-engine/docker-compose.full.yml logs <service-name>
+
+# Restart service
+docker compose -f helios-rtb-engine/docker-compose.full.yml restart <service-name>
+```
+
+**Complete reset:**
+```bash
+docker compose -f helios-rtb-engine/docker-compose.full.yml down -v
+./setup.sh --reset
+```
+
+See [COMPLETE_SETUP_GUIDE.md](COMPLETE_SETUP_GUIDE.md#9-troubleshooting) for detailed troubleshooting.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these guidelines:
+
+1. **Fork the repository**
+2. **Create a feature branch:** `git checkout -b feature/amazing-feature`
+3. **Commit your changes:** `git commit -m 'Add amazing feature'`
+4. **Push to branch:** `git push origin feature/amazing-feature`
+5. **Open a Pull Request**
+
+### Development Workflow
+
+- Follow the coding standards in `.github/copilot-instructions.md`
+- Write tests for new features
+- Update documentation as needed
+- Ensure all tests pass before submitting PR
+
+---
+
+## 📊 Monitoring & Metrics
+
+### Prometheus Metrics
+
+Each service exposes metrics on dedicated ports:
+
+```bash
+# Bid Request Handler
+curl http://localhost:2112/metrics | grep bid_requests_total
+
+# Bidding Logic Service
+curl http://localhost:8001/metrics | grep bid_requests_processed
+```
+
+### Service Logs
+
+View structured JSON logs:
+
+```bash
+# All services
+docker compose -f helios-rtb-engine/docker-compose.full.yml logs -f
+
+# Specific service
+docker compose -f helios-rtb-engine/docker-compose.full.yml logs -f bidding-logic-service
+```
+
+### Database Monitoring
+
+```bash
+# PostgreSQL queries
+docker compose -f helios-rtb-engine/docker-compose.full.yml exec postgres \
+  psql -U helios -d helios_analytics -c \
+  "SELECT COUNT(*) FROM outcomes_auctionoutcome;"
+
+# Redis keys
+docker compose -f helios-rtb-engine/docker-compose.full.yml exec redis \
+  redis-cli KEYS "user-*"
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- Built with modern microservices architecture principles
+- Inspired by real-world AdTech platforms (Google Ads, The Trade Desk)
+- Demonstrates cloud-native best practices
+- Educational project showcasing distributed systems design
+
+---
+
+## 📞 Support
+
+For issues, questions, or contributions:
+
+1. Check the [Troubleshooting](#-troubleshooting) section
+2. Review the [documentation](#-documentation)
+3. Check container logs for errors
+4. Open an issue on GitHub
+
+---
+
+<div align="center">
+
+**Built with ❤️ using Go, Python, Node.js, Kafka, Redis, and PostgreSQL**
+
+[⬆ Back to top](#helios-rtb-engine)
+
+</div>

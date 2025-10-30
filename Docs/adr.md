@@ -1,139 +1,413 @@
-### 1. Monorepo Directory Structure
+# Helios RTB Engine - Architecture Decision Records
 
-For a project with this many interconnected services, a **monorepo** (a single repository containing all the project code) is highly recommended. It simplifies dependency management, versioning, and running integration tests.
+> **Note**: For complete system architecture, see [helios-rtb-engine/docs/architecture_and_flow.md](../helios-rtb-engine/docs/architecture_and_flow.md)
+
+## 1. Monorepo Directory Structure
+
+For a project with multiple interconnected services, a **monorepo** (single repository containing all project code) provides significant benefits for dependency management, versioning, and integration testing.
+
+### Current Structure
 
 ```
-/helios-rtb-engine/
-|
-├── .github/                # CI/CD workflows (e.g., build Docker images on push)
-|
-├── .gitignore
-├── README.md               # High-level project overview and setup instructions
-|
-├── docs/                   # Project documentation
-|   ├── architecture.md     # The comprehensive design document you're reading now
-|   ├── adr/                # Architectural Decision Records (e.g., "Why we chose gRPC over REST")
-|   └── setup-guide.md      # Detailed guide for setting up the K8s cluster
-|
-├── infra/                  # Infrastructure-as-Code for non-K8s resources (if any)
-|
-├── kubernetes/             # All Kubernetes deployment manifests (YAML files)
-|   ├── 00-namespace.yaml   # Creates the 'helios' namespace for the project
-|   |
-|   ├── infra/              # Manifests for core infrastructure
-|   |   ├── kafka/
-|   |   ├── redis/
-|   |   ├── postgres/
-|   |   └── prometheus-grafana/
-|   |
-|   ├── services/           # Manifests for your application microservices
-|   |   ├── 01-bid-request-handler/
-|   |   |   ├── deployment.yaml
-|   |   |   └── service.yaml
-|   |   ├── 02-user-profile-service/
-|   |   |   ├── deployment.yaml
-|   |   |   ├── service.yaml
-|   |   |   └── configmap.yaml
-|   |   ├── ... (and so on for each service)
-|   |
-|   └── gateway/            # Manifests for the API Gateway (e.g., Traefik, Kong)
-|       ├── deployment.yaml
-|       └── ingressroute.yaml
-|
-├── proto/                  # Central location for all Protocol Buffer definitions
-|   └── user_profile.proto  # The contract for your gRPC service
-|
-├── scripts/                # Helper scripts
-|   ├── setup_cluster.sh    # Script to automate setting up the local K8s cluster
-|   ├── generate_data.py    # Python script to generate mock bid requests and user profiles
-|   └── deploy_all.sh       # A simple script to run `kubectl apply` on the entire /kubernetes dir
-|
-└── services/               # The source code for each individual microservice
-    |
-    ├── bid-request-handler/  (Go)
-    |   ├── main.go
-    |   ├── go.mod
-    |   ├── Dockerfile
-    |   └── .dockerignore
-    |
-    ├── bidding-logic-service/ (Python)
-    |   ├── src/
-    |   ├── requirements.txt
-    |   ├── Dockerfile
-    |   └── .dockerignore
-    |
-    ├── user-profile-service/ (Node.js)
-    |   ├── src/
-    |   ├── package.json
-    |   ├── tsconfig.json
-    |   ├── Dockerfile
-    |   └── .dockerignore
-    |
-    ├── ... (and so on for analytics, auction-simulator)
-    |
-    └── advertiser-dashboard/ (Next.js)
-        ├── pages/
-        ├── components/
-        ├── package.json
-        ├── Dockerfile
-        └── .dockerignore
+/devops/
+├── helios-rtb-engine/          # Main project directory
+│   ├── docker-compose.full.yml # Complete orchestration
+│   ├── services/               # All microservices source code
+│   ├── kubernetes/             # K8s deployment manifests
+│   ├── proto/                  # gRPC protocol definitions
+│   ├── scripts/                # Utility and setup scripts
+│   └── docs/                   # Technical documentation
+│
+├── postman/                    # API testing collection
+├── Docs/                       # High-level documentation
+│
+├── setup.sh                    # Automated setup
+├── test.sh                     # Verification suite
+├── COMPLETE_SETUP_GUIDE.md     # Comprehensive guide
+└── README.md                   # Project overview
+```
+
+### Benefits of This Structure
+
+- ✅ **Single Source of Truth**: All services versioned together
+- ✅ **Simplified Dependency Management**: Shared configurations and tools
+- ✅ **Easier Integration Testing**: All code in one place
+- ✅ **Atomic Commits**: Changes across services in single commit
+- ✅ **Consistent Tooling**: Shared linters, formatters, CI/CD
+
+---
+
+## 2. Key Architectural Decisions
+
+### A. Environment & Tooling Decisions
+
+#### Local Development Environment
+
+**Decision**: Use WSL2 + Docker Compose for local development
+
+**Rationale**:
+- ✅ Consistent environment across Windows machines
+- ✅ Docker Compose provides simpler local orchestration
+- ✅ Faster iteration without Kubernetes complexity
+- ✅ Production deployment uses Kubernetes manifests
+
+**Implementation**: See [COMPLETE_SETUP_GUIDE.md](../COMPLETE_SETUP_GUIDE.md)
+
+#### Container Registry
+
+**Decision**: Build images locally, optional Docker Hub for sharing
+
+**Rationale**:
+- Local builds avoid registry complexity for development
+- Docker Hub available for team collaboration if needed
+- Production would use private registry (ECR, GCR, ACR)
+
+**Implementation**: Images built via `docker compose build`
+
+### B. Communication Protocol Decisions
+
+#### Asynchronous: Apache Kafka
+
+**Decision**: Use Kafka as the primary message bus
+
+**Rationale**:
+- ✅ Decouples services for independent scaling
+- ✅ Provides message durability (no data loss)
+- ✅ Enables replay for debugging
+- ✅ Industry-standard for event streaming
+- ✅ Supports millions of messages per second
+
+**Topics**:
+- `bid_requests` - Raw incoming bid requests
+- `bid_responses` - Calculated bid responses
+- `auction_outcomes` - Final auction results
+
+#### Synchronous: gRPC for User Profile Service
+
+**Decision**: Use gRPC instead of REST for user profile lookups
+
+**Rationale**:
+- ✅ **Performance**: HTTP/2 + Protocol Buffers = sub-5ms calls
+- ✅ **Type Safety**: Strongly-typed contracts via `.proto` files
+- ✅ **Efficiency**: Binary serialization smaller than JSON
+- ✅ **Code Generation**: Auto-generate client/server code
+- ⚠️ **Trade-off**: Less human-readable than JSON
+
+**When to use**:
+- Critical path operations (bidding logic → user profile)
+- High-frequency, low-latency requirements
+
+**When NOT to use**:
+- Public-facing APIs (use REST for better compatibility)
+- Simple CRUD operations (REST is simpler)
+
+#### Synchronous: REST for Public APIs
+
+**Decision**: Use REST/HTTP for external-facing endpoints
+
+**Rationale**:
+- ✅ Universal compatibility
+- ✅ Human-readable JSON
+- ✅ Easy to test with curl/Postman
+- ✅ Well-understood by all developers
+
+**Endpoints**:
+- `POST /bid` - Submit bid requests
+- `GET /api/outcomes/` - Query analytics
+- `GET /healthz` - Health checks
+
+### C. Database Selection
+
+#### Redis for User Profiles
+
+**Decision**: Use Redis as cache for user profile data
+
+**Rationale**:
+- ✅ **Speed**: Sub-millisecond read times
+- ✅ **Simplicity**: Key-value storage perfect for profiles
+- ✅ **Scalability**: Easy to scale with clustering
+- ⚠️ **Volatility**: In-memory = data lost on restart (acceptable for cache)
+
+**Schema**: `user-{id}` → JSON string with interests
+
+#### PostgreSQL for Analytics
+
+**Decision**: Use PostgreSQL for analytics data persistence
+
+**Rationale**:
+- ✅ **Reliability**: ACID transactions, data durability
+- ✅ **Querying**: Rich SQL for analytics and aggregations
+- ✅ **Indexing**: Fast queries on win_status, user_id, timestamps
+- ✅ **Ecosystem**: Excellent tooling and ORMs (Django ORM)
+
+**Alternative considered**: ClickHouse (better for massive scale, overkill for this scope)
+
+### D. Configuration Management
+
+**Decision**: Environment variables injected via Docker Compose / Kubernetes ConfigMaps
+
+**Rationale**:
+- ✅ 12-Factor App principle
+- ✅ No hardcoded configuration in source code
+- ✅ Easy to override for different environments
+- ✅ Kubernetes-native approach
+
+**Examples**:
+```yaml
+KAFKA_BROKERS: kafka:29092
+USER_PROFILE_SVC_ADDR: user-profile-service:50051
+DB_HOST: postgres
+DB_NAME: helios_analytics
 ```
 
 ---
 
-### 2. Things to Know & Decide Before Jumping In
+## 3. Development Phased Approach
 
-This is your pre-flight checklist. Agreeing on these points as a team will prevent significant friction.
+**Decision**: Build incrementally in phases, not all at once
 
-#### A. Environment & Tooling
+**Rationale**:
+- ✅ Reduces complexity and debugging scope
+- ✅ Validates each component before moving forward
+- ✅ Enables early testing and iteration
+- ✅ Team can work on different phases in parallel (after initial setup)
 
-1.  **Consistent Local Environment:** Your biggest challenge is consistency across 3 laptops.
-    *   **Docker Desktop:** Everyone MUST have Docker Desktop installed. It comes with a local Kubernetes engine which can be enabled.
-    *   **Kubernetes for Laptops:** Decide on your K8s distribution. **k3s** is a lightweight, certified distribution perfect for this. You can set up one laptop as the master and have the others join as worker nodes over your local WiFi. **This is a crucial first step. Document the process in `docs/setup-guide.md`.**
-    *   **Shared Docker Registry:** To share Docker images between your laptops, you can use Docker Hub or set up a local Docker registry on the master node. This is much faster than pushing/pulling from the internet.
+### Phase Breakdown
 
-2.  **API Contracts First:** Do NOT start coding the services immediately.
-    *   **gRPC:** Define the `user_profile.proto` file first. Agree on the service methods, request, and response messages. Generate the client and server stubs for both Node.js and Python from this file.
-    *   **REST APIs:** Use the **OpenAPI (Swagger) specification** to define the REST APIs for the `Bid Request Handler` and the `Analytics Service`. This provides clear documentation and allows you to generate API clients.
+#### Phase 0: Foundation
+**Goal**: Infrastructure setup and validation
 
-3.  **Configuration Management:** How will services know where Kafka or Redis is?
-    *   **Kubernetes ConfigMaps:** For non-sensitive configuration like the address of another service (e.g., `kafka-service.helios.svc.cluster.local:9092`).
-    *   **Kubernetes Secrets:** For all sensitive data (database passwords, API keys).
-    *   **Environment Variables:** Services should read their configuration from environment variables. Kubernetes will populate these variables from ConfigMaps and Secrets. This is a core principle of 12-Factor Apps.
+**Tasks**:
+- Set up WSL2 + Docker Desktop
+- Verify Docker Compose works
+- Deploy infrastructure (Kafka, Redis, PostgreSQL)
+- Validate inter-container networking
 
-#### B. The Phased Development Plan (Crucial for Success)
+**Success Criteria**: All infrastructure containers healthy
 
-Do not try to build everything at once. Build a "walking skeleton" of the data pipeline and then add features.
+#### Phase 1: Core Asynchronous Pipeline
+**Goal**: Get messages flowing through Kafka
 
-*   **Phase 0: Foundation (The Plumbing)**
-    *   **Goal:** Set up the multi-node K8s cluster across your laptops.
-    *   **Tasks:** Install k3s, connect the nodes. Deploy Kafka and a tool like `k9s` or `Lens` to inspect the cluster. Prove that a simple "hello-world" pod on one node can talk to another pod on a different node.
+**Services**: Bid Request Handler (Go), Bidding Logic Service (Python)
 
-*   **Phase 1: The Core Asynchronous Pipeline**
-    *   **Goal:** Get a message from the entry point to the end point via Kafka.
-    *   **Tasks:**
-        1.  Build the `Bid Request Handler` (Go). It should only receive an HTTP request and publish its body to the `bid_requests` Kafka topic.
-        2.  Build the `Bidding Logic Service` (Python). It should only consume from `bid_requests`, log the message, and do nothing else.
-        3.  Containerize and deploy both. Use your `generate_data.py` script to send a fake bid request and verify it appears in the logs of the Bidding Logic Service.
+**Tasks**:
+1. Build Bid Request Handler with `/bid` endpoint
+2. Publish messages to `bid_requests` topic
+3. Build Bidding Logic consumer (no enrichment yet)
+4. Verify messages flow end-to-end
 
-*   **Phase 2: Adding Real-time Context (The gRPC Call)**
-    *   **Goal:** Integrate the low-latency data enrichment step.
-    *   **Tasks:**
-        1.  Deploy Redis to the cluster.
-        2.  Build the `User Profile Service` (Node.js) with its gRPC endpoint. It should be able to read/write mock data to Redis.
-        3.  Modify the `Bidding Logic Service` to make a gRPC call to the `User Profile Service`.
-        4.  Test the end-to-end latency. This is where you'll use tracing tools later.
+**Success Criteria**: `./test.sh` shows messages in Kafka topics
 
-*   **Phase 3: Closing the Loop (Auction & Analytics)**
-    *   **Goal:** Complete the data flow and persist the results.
-    *   **Tasks:**
-        1.  Build the `Auction Service` and `Analytics Service`.
-        2.  Deploy PostgreSQL.
-        3.  Modify the Bidding Logic service to produce a bid response.
-        4.  Ensure the auction outcomes are correctly written to the PostgreSQL database.
+**Documentation**: [helios-rtb-engine/docs/phases/01-core-pipeline.md](../helios-rtb-engine/docs/phases/01-core-pipeline.md)
 
-*   **Phase 4: Observability & User Interface**
-    *   **Goal:** Add monitoring and a way to view the data.
-    *   **Tasks:**
-        1.  Deploy the Prometheus/Grafana stack. Add metrics endpoints to your key services.
-        2.  Build the `Advertiser Dashboard` (Next.js) to query the Analytics Service API.
+#### Phase 2: User Enrichment
+**Goal**: Add real-time user profile lookups
+
+**Services**: User Profile Service (Node.js)
+
+**Tasks**:
+1. Deploy Redis
+2. Build gRPC server for user profiles
+3. Seed Redis with demo data
+4. Modify Bidding Logic to call gRPC endpoint
+5. Verify enriched bids with user interests
+
+**Success Criteria**: Bid responses include `enriched: true` and interest scores
+
+#### Phase 3: Auction & Analytics
+**Goal**: Complete the pipeline with auction logic and data persistence
+
+**Services**: Auction Simulator, Analytics Service
+
+**Tasks**:
+1. Build Auction Simulator consuming from `bid_responses`
+2. Implement auction logic (threshold + probability)
+3. Build Analytics Service (API + Consumer)
+4. Deploy PostgreSQL
+5. Verify data persists in database
+
+**Success Criteria**: `curl localhost:8000/api/outcomes/` returns data
+
+**Documentation**: 
+- [03-auction-service.md](../helios-rtb-engine/docs/phases/03-auction-service.md)
+- [03.2-analytics-service.md](../helios-rtb-engine/docs/phases/03.2-analytics-service.md)
+
+#### Phase 4: Observability & UI
+**Goal**: Add monitoring and user interface
+
+**Services**: Advertiser Dashboard
+
+**Tasks**:
+1. Build Next.js dashboard
+2. Add Prometheus metrics to services
+3. Create Grafana dashboards (optional)
+4. Add comprehensive logging
+
+**Success Criteria**: Dashboard displays live data from analytics API
+
+**Documentation**: [04-observability-ui.md](../helios-rtb-engine/docs/phases/04-observability-ui.md)
+
+---
+
+## 4. Security & Production Considerations
+
+### Docker Security
+
+**Decision**: All containers run as non-root users
+
+**Implementation**:
+```dockerfile
+# Final stage creates non-root user
+RUN addgroup --system appgroup && adduser --system --group appuser
+USER appuser
+```
+
+**Rationale**: Defense in depth - container compromise doesn't grant root access
+
+### Secrets Management
+
+**Decision**: Use environment variables for local, Kubernetes Secrets for production
+
+**Current State**: Default credentials in `docker-compose.full.yml`
+```yaml
+POSTGRES_PASSWORD: admin  # ⚠️ CHANGE IN PRODUCTION
+```
+
+**Production Implementation**:
+```yaml
+env:
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: postgres-secret
+        key: password
+```
+
+### Network Security
+
+**Decision**: Services communicate within Docker network / K8s cluster
+
+**Rationale**:
+- Only necessary ports exposed to host
+- Internal traffic doesn't leave the bridge network
+- Production would add TLS/mTLS via service mesh
+
+---
+
+## 5. Testing Strategy
+
+### Automated Testing
+
+**Decision**: Multi-level testing approach
+
+**Levels**:
+1. **Unit Tests**: Within each service (Python pytest, Node.js Jest)
+2. **Integration Tests**: `test.sh` validates entire pipeline
+3. **API Tests**: Postman collection for manual/CI testing
+4. **Load Tests**: `populate_demo_data.py` for stress testing
+
+### Health Checks
+
+**Decision**: Every service exposes health endpoint
+
+**Implementation**:
+```yaml
+healthcheck:
+  test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+  interval: 10s
+  timeout: 5s
+  retries: 3
+```
+
+**Rationale**: Docker/Kubernetes can detect and restart unhealthy containers
+
+---
+
+## 6. Monitoring & Observability
+
+### Structured Logging
+
+**Decision**: JSON logs to stdout
+
+**Format**:
+```json
+{
+  "timestamp": "2025-10-30T12:00:00Z",
+  "level": "INFO",
+  "service": "bidding-logic-service",
+  "message": "Bid calculated",
+  "bid_price": 1.20,
+  "request_id": "req-123"
+}
+```
+
+**Rationale**:
+- ✅ Easy to parse and aggregate
+- ✅ Works with standard log collectors (Fluentd, Logstash)
+- ✅ Queryable in log analysis tools
+
+### Metrics
+
+**Decision**: Prometheus-compatible metrics endpoints
+
+**Exposed Ports**:
+- Bid Handler: `:2112/metrics`
+- Bidding Logic: `:8001/metrics`
+
+**Key Metrics**:
+- `bid_requests_total` - Counter of total bids
+- `bid_requests_duration_seconds` - Histogram of processing time
+- `kafka_messages_consumed_total` - Consumer throughput
+
+---
+
+## 7. Future Enhancements
+
+### Machine Learning Integration
+
+**Potential**: Replace rule-based bidding with ML model
+
+**Implementation**:
+- Train model on historical auction outcomes
+- Predict optimal bid price based on features
+- Deploy model as separate service or inline
+
+### Real-Time Dashboard Updates
+
+**Potential**: WebSocket/SSE for live dashboard updates
+
+**Implementation**:
+- Add WebSocket server to Analytics Service
+- Publish to WS when new outcomes arrive
+- Dashboard subscribes and updates charts live
+
+### Advanced Monitoring
+
+**Potential**: Add Prometheus + Grafana stack
+
+**Implementation**:
+```bash
+kubectl apply -f helios-rtb-engine/kubernetes/infra/prometheus-grafana/
+```
+
+### Circuit Breakers
+
+**Potential**: Graceful degradation when services fail
+
+**Implementation**: Use libraries like `resilience4py`, `polly`, or `hystrix`
+
+---
+
+## Summary
+
+This architecture balances:
+- **Performance** (Go, gRPC, Redis)
+- **Scalability** (Kafka, stateless services)
+- **Maintainability** (clear separation, documentation)
+- **Observability** (metrics, logs, health checks)
+- **Production-readiness** (security, configuration, testing)
+
+For complete setup and deployment, see:
+- **[COMPLETE_SETUP_GUIDE.md](../COMPLETE_SETUP_GUIDE.md)** - Full walkthrough
+- **[Architecture Overview](../helios-rtb-engine/docs/architecture_and_flow.md)** - Technical details
+- **[Phase Documentation](../helios-rtb-engine/docs/phases/)** - Development guides
