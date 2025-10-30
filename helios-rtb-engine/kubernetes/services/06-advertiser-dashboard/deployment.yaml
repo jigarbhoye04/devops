@@ -22,8 +22,8 @@ spec:
     spec:
       containers:
       - name: dashboard
-        image: helios/advertiser-dashboard:phase4
-        imagePullPolicy: Never
+        image: helios/advertiser-dashboard:latest
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3000
           name: http

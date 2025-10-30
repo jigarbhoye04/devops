@@ -24,8 +24,8 @@ spec:
     spec:
       containers:
         - name: bid-request-handler
-          image: helios/bid-request-handler:phase4
-          imagePullPolicy: Never
+          image: helios/bid-request-handler:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
               name: http
@@ -54,3 +54,10 @@ spec:
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 20
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"

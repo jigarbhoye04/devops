@@ -24,8 +24,8 @@ spec:
     spec:
       containers:
         - name: bidding-logic-service
-          image: helios/bidding-logic-service:phase4
-          imagePullPolicy: Never
+          image: helios/bidding-logic-service:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8001
               name: metrics
@@ -53,3 +53,22 @@ spec:
               value: "2.0"
             - name: METRICS_PORT
               value: "8001"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 8001
+            initialDelaySeconds: 15
+            periodSeconds: 20
