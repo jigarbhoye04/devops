@@ -8,7 +8,9 @@ interface OutcomesTableProps {
 
 export default function OutcomesTable({ outcomes }: OutcomesTableProps) {
   const formatPrice = (price: string | number) => {
-    return typeof price === 'string' ? parseFloat(price).toFixed(4) : price.toFixed(4);
+    if (price === null || price === undefined) return '0.0000';
+    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    return isNaN(numPrice) ? '0.0000' : numPrice.toFixed(4);
   };
 
   const formatTimestamp = (timestamp: string) => {

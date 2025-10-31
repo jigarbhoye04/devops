@@ -145,7 +145,7 @@ export default function WinRateChart({ data }: WinRateChartProps) {
                 borderRadius: '8px',
                 color: '#F3F4F6'
               }}
-              formatter={(value: number) => `$${value.toFixed(2)}`}
+              formatter={(value: number) => `$${(value || 0).toFixed(2)}`}
             />
             <Legend />
             <Line 

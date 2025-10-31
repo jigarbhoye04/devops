@@ -28,25 +28,25 @@ export default function StatsCards({ stats, loading }: StatsCardsProps) {
   const cards = [
     {
       title: 'Total Outcomes',
-      value: stats.total_outcomes.toLocaleString(),
-      subtext: `${stats.total_wins.toLocaleString()} wins, ${stats.total_losses.toLocaleString()} losses`,
+      value: (stats.total_outcomes || 0).toLocaleString(),
+      subtext: `${(stats.total_wins || 0).toLocaleString()} wins, ${(stats.total_losses || 0).toLocaleString()} losses`,
       color: 'blue',
     },
     {
       title: 'Win Rate',
-      value: `${stats.win_rate.toFixed(2)}%`,
-      subtext: `${stats.enriched_count.toLocaleString()} enriched`,
+      value: `${(stats.win_rate || 0).toFixed(2)}%`,
+      subtext: `${(stats.enriched_count || 0).toLocaleString()} enriched`,
       color: 'green',
     },
     {
       title: 'Total Revenue',
-      value: `$${stats.total_revenue.toFixed(2)}`,
-      subtext: `Avg: $${stats.average_win_price.toFixed(4)}`,
+      value: `$${(stats.total_revenue || 0).toFixed(2)}`,
+      subtext: `Avg: $${(stats.average_win_price || 0).toFixed(4)}`,
       color: 'purple',
     },
     {
       title: 'Avg Bid Price',
-      value: `$${stats.average_bid_price.toFixed(4)}`,
+      value: `$${(stats.average_bid_price || 0).toFixed(4)}`,
       subtext: 'All auctions',
       color: 'orange',
     },
